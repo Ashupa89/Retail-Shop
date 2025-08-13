@@ -453,5 +453,5 @@ def allowed_file(filename):
 if __name__ == '__main__':
     # reset=True will rebuild DB completely
     init_db(reset=False)
-    app.run(debug=True)
+#     app.run(debug=True)
 
