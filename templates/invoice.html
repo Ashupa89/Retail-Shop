@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="invoice-container">
+    <header class="invoice-header">
+        <img src="{{ url_for('static', filename=shop.logo_filename if shop and shop.logo_filename else 'logo.png') }}" alt="Logo" class="invoice-logo">
+        <div class="invoice-shop-info">
+            <h1>{{ shop.shop_name if shop else 'Patidar Traders' }}</h1>
+            <p>{{ shop.address if shop else 'Mugaliya' }}</p>
+            <p>Phone: {{ shop.phone if shop else '1234567890' }}</p>
+            <p>GSTIN: {{ shop.gstin if shop else 'GSTN000001' }}</p>
+        </div>
+    </header>
+
+    <section class="invoice-info">
+        <div><strong>Invoice Number:</strong> {{ invoice.invoice_number }}</div>
+        <div><strong>Date:</strong> {{ invoice.sale_date.strftime("%d-%m-%Y") }}</div>
+        <div><strong>Customer:</strong> {{ invoice.customer_name }}</div>
+    </section>
+
+    <table class="invoice-table">
+        <thead>
+        <tr>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Unit Price (₹)</th>
+            <th>Total (₹)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{ invoice.product_name }}</td>
+            <td>{{ invoice.quantity }}</td>
+            <td>{{ '%.2f'|format(invoice.unit_price) }}</td>
+            <td>{{ '%.2f'|format(invoice.total_price) }}</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="invoice-total">
+        <strong>Grand Total: ₹{{ '%.2f'|format(invoice.total_price) }}</strong>
+    </div>
+
+    <footer class="invoice-footer">
+        <p>Thank you for your business!</p>
+    </footer>
+</div>
+{% endblock %}

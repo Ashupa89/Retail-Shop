@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="card shadow-sm p-4" style="max-width: 360px; width: 100%;">
+
+    <div class="text-center mb-4">
+      <img src="{{ url_for('static', filename=shop.logo_filename if shop and shop.logo_filename else 'logo.png') }}"
+           alt="Shop Logo"
+           class="img-fluid"
+           style="max-height: 120px;">
+    </div>
+
+    <h2 class="text-center mb-4">Login</h2>
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      {{ error }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input
+                type="text"
+                class="form-control"
+                id="username"
+                name="username"
+                required
+                autofocus
+                placeholder="Enter your username"
+        >
+      </div>
+
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+                placeholder="Enter your password"
+        >
+      </div>
+
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" value="yes" id="remember" name="remember">
+        <label class="form-check-label" for="remember">
+          Remember Me
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 mb-3">
+        <i class="fa-solid fa-right-to-bracket me-2"></i> Login
+      </button>
+
+      <div class="text-center">
+        <a href="" class="small">Forgot Password?</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

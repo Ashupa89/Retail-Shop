@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm border-0 mx-auto" style="max-width: 700px;">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-gear"></i> Shop Settings</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-4">
+                <label for="shop_name" class="form-label fw-semibold">Shop Name <span class="text-danger">*</span></label>
+                <input id="shop_name" name="shop_name" type="text" class="form-control"
+                       value="{{ shop.shop_name }}" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="address" class="form-label fw-semibold">Address <span class="text-danger">*</span></label>
+                <textarea id="address" name="address" class="form-control" rows="2" required>{{ shop.address }}</textarea>
+            </div>
+
+            <div class="row mb-4 g-3">
+                <div class="col-md-6">
+                    <label for="phone" class="form-label fw-semibold">Phone <span class="text-danger">*</span></label>
+                    <input id="phone" name="phone" type="tel" pattern="[0-9+\-\s]*"
+                           class="form-control" value="{{ shop.phone }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="gstin" class="form-label fw-semibold">GSTIN <span class="text-danger">*</span></label>
+                    <input id="gstin" name="gstin" type="text" maxlength="15"
+                           class="form-control" value="{{ shop.gstin }}" required>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="logo" class="form-label fw-semibold">Upload Logo</label>
+                <input id="logo" name="logo" type="file" accept="image/png, image/jpeg, image/gif"
+                       class="form-control">
+            </div>
+
+            <div class="mb-4 text-center">
+                <p class="fw-semibold">Current Logo:</p>
+                <img id="logoPreview"
+                     src="{% if shop.logo_filename %}{{ url_for('static', filename=shop.logo_filename) }}{% else %}https://via.placeholder.com/200x100?text=No+Logo{% endif %}"
+                     alt="Current Logo"
+                     class="img-fluid rounded shadow-sm border"
+                     style="max-height: 130px;">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                <i class="bi bi-save"></i> Save Settings
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const logoInput = document.getElementById('logo');
+    const logoPreview = document.getElementById('logoPreview');
+    logoInput.addEventListener('change', (event) => {
+        const [file] = event.target.files;
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => logoPreview.src = e.target.result;
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}

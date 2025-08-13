@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Dashboard</h2>
+
+<div class="dashboard-cards">
+    <div class="card total-products">
+        <h3>Total Products</h3>
+        <p>{{ products|length }}</p>
+    </div>
+    <div class="card recent-sales">
+        <h3>Recent Sales</h3>
+        <p>{{ sales|length }}</p>
+    </div>
+    <div class="card low-stock">
+        <h3>Low Stock Alerts</h3>
+        {% if low_stock %}
+        <ul>
+            {% for p in low_stock %}
+            <li>{{ p.name }} ({{ p.quantity }} left)</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No low stock alerts.</p>
+        {% endif %}
+    </div>
+</div>
+
+<h3 class="section-title">Recent Sales Details</h3>
+<table class="table table-striped table-hover">
+    <thead>
+    <tr>
+        <th>Date & Time</th>
+        <th>Invoice Number</th>
+        <th>Product Name</th>
+        <th>Quantity</th>
+        <th>Total (₹)</th>
+        <th>Customer Name</th>
+        <th>Invoice</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for s in sales %}
+    <tr>
+        <td>
+            {% if s.created_at %}
+            {{ s.created_at.strftime("%d-%m-%Y %I:%M %p") }}
+            {% else %}
+            N/A
+            {% endif %}
+        </td>
+        <td>{{ s.invoice_no }}</td>
+        <td>{{ s.product_name }}</td>
+        <td>{{ s.quantity }}</td>
+        <td>{{ '%.2f'|format(s.total or 0) }}</td>
+        <td>{{ s.customer_name }}</td>
+        <td>
+            <a class="btn btn-primary" href="/invoice/{{ s.invoice_no }}" target="_blank" title="Open Invoice {{ s.invoice_no }}">
+                <i class="fa-solid fa-file-pdf"></i> Invoice
+            </a>
+        </td>
+    </tr>
+    {% else %}
+    <tr>
+        <td colspan="7" class="text-center">No sales records found.</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

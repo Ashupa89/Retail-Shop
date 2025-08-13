@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="invoice p-4" style="max-width:700px; margin:auto; border:1px solid #ccc;">
+    <h2 class="mb-1">{{ shop_name or "Patidar Traders" }}</h2>
+    {% if shop_logo %}
+    <img src="{{ url_for('static', filename='uploads/' + shop_logo) }}" alt="Logo" style="max-height:80px;"/>
+    {% endif %}
+    <p>
+        {% if phone_number %} Phone: {{ phone_number }} <br> {% endif %}
+        {% if gst_number %} GSTIN: {{ gst_number }} {% else %} GSTIN: GSTN000001 {% endif %}
+    </p>
+
+    <hr>
+    <h4>Invoice: {{ sale.invoice_no }}</h4>
+    <p>Date: {{ sale.created_at.strftime('%Y-%m-%d') }}<br>Customer: {{ sale.customer_name or 'Walk-in' }}</p>
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for si in items %}
+        <tr>
+            <td>{{ si.product.name }}</td>
+            <td>{{ si.qty }}</td>
+            <td>{{ '%.2f'|format(si.price) }}</td>
+            <td>{{ '%.2f' % (si.qty * si.price) }}</td>
+
+        </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+        <tr>
+            <th colspan="3" class="text-end">Total</th>
+            <th>{{ '%.2f'|format(sale.total) }}</th>
+        </tr>
+        </tfoot>
+    </table>
+    <p class="text-center mt-4"><em>Thank you for your purchase!</em></p>
+    <button class="btn btn-primary" onclick="window.print()">Print Invoice</button>
+</div>
+{% endblock %}

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title if title else "RetailStockApp" }} - {{ shop.shop_name if shop else "Patidar Traders" }}</title>
+
+    <!-- Font Awesome (keep for existing pages that use fa-*) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-p8tfwXIP6P4Xr4/7RHEVqJZJquhk1xFBlYfSlhrxmtL8/SVoF3YmNfaEbVud0V9Ie93hoUmqQkCq7OJAlUPQEg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+
+    <style>
+        :root{
+            --sidebar-width: 250px;
+            --sidebar-collapsed: 72px;
+        }
+        body { background-color: #f8f9fa; overflow-x: hidden; }
+
+        /* Sidebar */
+        .sidebar{
+            position: fixed; top: 0; left: 0; bottom: 0;
+            width: var(--sidebar-width);
+            background-color: #0d6efd; color: #fff;
+            padding-top: 0.75rem; z-index: 1000;
+            transition: width .25s ease, transform .25s ease;
+            will-change: width, transform;
+        }
+        .sidebar .brand{ padding: 0 16px; display:flex; flex-direction:column; align-items:center; text-align:center; }
+        .sidebar .brand img{ height: 50px; border-radius: 8px; background: #fff; padding: 3px; border: 1px solid rgba(255,255,255,.5); }
+        .sidebar .brand .brand-name{ margin-top:.5rem; font-weight:600; }
+
+        .sidebar .nav-link{
+            color: #fff; display:flex; align-items:center;
+            gap: 10px; padding: 10px 16px; border-radius: 8px; margin: 4px 8px;
+            white-space: nowrap;
+        }
+        .sidebar .nav-link:hover{ background-color: rgba(255,255,255,.15); }
+        .sidebar .nav-link.active{ background-color: rgba(255,255,255,.25); }
+
+        /* Collapsed (desktop) */
+        .sidebar.collapsed{ width: var(--sidebar-collapsed); }
+        .sidebar.collapsed .brand .brand-name{ display:none; }
+        .sidebar.collapsed .nav-link{ justify-content:center; }
+        .sidebar.collapsed .nav-link .label{ display:none; }
+
+        /* Main content */
+        .main-content{
+            margin-left: var(--sidebar-width);
+            padding: 20px;
+            transition: margin-left .25s ease;
+            min-height: 100vh;
+        }
+        /* When sidebar is collapsed (desktop). Use general sibling to be robust. */
+        .sidebar.collapsed ~ .main-content{ margin-left: var(--sidebar-collapsed); }
+
+        /* Mobile behavior */
+        @media (max-width: 991.98px){
+            .sidebar{
+                transform: translateX(-100%);
+                width: var(--sidebar-width); /* full width when open */
+            }
+            .sidebar.sidebar-open{ transform: translateX(0); }
+            .main-content{ margin-left: 0; }
+        }
+
+        /* Overlay for mobile */
+        .sidebar-overlay{
+            position: fixed; inset: 0; background: rgba(0,0,0,.35);
+            z-index: 900; display: none;
+        }
+        .sidebar-overlay.show{ display:block; }
+
+        footer{
+            background-color: #0d6efd; color: #fff; text-align: center;
+            padding: 8px; margin-top: 20px; border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Sidebar -->
+<aside id="sidebar" class="sidebar">
+    <div class="brand mb-3">
+        <img src="{{ url_for('static', filename=shop.logo_filename if shop and shop.logo_filename else 'logo.png') }}" alt="Logo" />
+        <div class="brand-name">{{ shop.shop_name if shop else 'Patidar Traders' }}</div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    {% set ep = request.endpoint %}
+    <nav class="nav flex-column">
+        <a href="{{ url_for('index') }}" class="nav-link {% if ep=='index' %}active{% endif %}" data-bs-toggle="tooltip" data-bs-placement="right" title="Dashboard">
+            <i class="bi bi-speedometer2"></i><span class="label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('products') }}" class="nav-link {% if ep=='products' %}active{% endif %}" data-bs-toggle="tooltip" data-bs-placement="right" title="Products">
+            <i class="bi bi-box-seam"></i><span class="label">Products</span>
+        </a>
+        <a href="{{ url_for('sales') }}" class="nav-link {% if ep=='sales' %}active{% endif %}" data-bs-toggle="tooltip" data-bs-placement="right" title="Sales">
+            <i class="bi bi-receipt"></i><span class="label">Sales</span>
+        </a>
+        <a href="{{ url_for('settings') }}" class="nav-link {% if ep=='settings' %}active{% endif %}" data-bs-toggle="tooltip" data-bs-placement="right" title="Settings">
+            <i class="bi bi-gear"></i><span class="label">Settings</span>
+        </a>
+        <a href="{{ url_for('logout') }}" class="nav-link text-warning" data-bs-toggle="tooltip" data-bs-placement="right" title="Logout">
+            <i class="bi bi-box-arrow-right"></i><span class="label">Logout</span>
+        </a>
+    </nav>
+    {% endif %}
+</aside>
+
+<!-- Mobile overlay -->
+<div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+<!-- Main Content -->
+<main id="mainContent" class="main-content">
+    <!-- Top Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button class="btn btn-outline-primary btn-sm" id="toggleSidebar" aria-expanded="true" aria-controls="sidebar">
+            <i class="bi bi-list"></i>
+        </button>
+        <h5 class="mb-0">{{ title if title else "Dashboard" }}</h5>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer>
+        &copy; {{ shop.shop_name if shop else 'Patidar Traders' }} - All Rights Reserved
+    </footer>
+</main>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Optional jQuery for legacy code that might still rely on it -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    (function(){
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const mqDesktop = window.matchMedia('(min-width: 992px)');
+        const LS_KEY = 'sidebarCollapsed';
+
+        function isDesktop(){ return mqDesktop.matches; }
+
+        // Init tooltips (only really useful when collapsed)
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltips = tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+
+        function setAriaExpanded(expanded){
+            toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        }
+
+        function applyDesktopState(){
+            // Read persisted state
+            const collapsed = localStorage.getItem(LS_KEY) === '1';
+            sidebar.classList.toggle('collapsed', collapsed);
+            overlay.classList.remove('show');
+            setAriaExpanded(!collapsed);
+        }
+
+        function applyMobileState(){
+            // On mobile, default closed
+            sidebar.classList.remove('collapsed');
+            sidebar.classList.remove('sidebar-open');
+            overlay.classList.remove('show');
+            setAriaExpanded(false);
+        }
+
+        function openMobileSidebar(){
+            sidebar.classList.add('sidebar-open');
+            overlay.classList.add('show');
+            setAriaExpanded(true);
+        }
+
+        function closeMobileSidebar(){
+            sidebar.classList.remove('sidebar-open');
+            overlay.classList.remove('show');
+            setAriaExpanded(false);
+        }
+
+        // Initial load
+        function init(){
+            if (isDesktop()){
+                applyDesktopState();
+            } else {
+                applyMobileState();
+            }
+        }
+
+        // Toggle button behavior
+        toggleBtn.addEventListener('click', () => {
+            if (isDesktop()){
+                const collapsed = sidebar.classList.toggle('collapsed');
+                localStorage.setItem(LS_KEY, collapsed ? '1' : '0');
+                setAriaExpanded(!collapsed);
+            } else {
+                if (sidebar.classList.contains('sidebar-open')) closeMobileSidebar();
+                else openMobileSidebar();
+            }
+        });
+
+        // Click overlay to close on mobile
+        overlay.addEventListener('click', closeMobileSidebar);
+
+        // Update behavior on resize
+        mqDesktop.addEventListener('change', init);
+
+        // Run
+        init();
+    })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RetailStockApp - Patidar Traders</title>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-p8tfwXIP6P4Xr4/7RHEVqJZJquhk1xFBlYfSlhrxmtL8/SVoF3YmNfaEbVud0V9Ie93hoUmqQkCq7OJAlUPQEg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+
+  <style>
+    /* Improved visual spacing */
+    body {
+      background-color: #f8f9fa;
+    }
+    .navbar-brand h4 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .navbar-brand small {
+      font-size: 0.85rem;
+    }
+    .navbar-nav .btn {
+      border-radius: 50px;
+      padding: 0.4rem 1rem;
+      font-size: 0.9rem;
+    }
+    main {
+      min-height: calc(100vh - 150px);
+    }
+    footer {
+      background-color: #0d6efd;
+      color: white;
+      padding: 10px 0;
+      text-align: center;
+    }
+    .alert {
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Navbar / Header -->
+<header>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+
+      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+        <img src="{{ url_for('static', filename=shop.logo_filename if shop and shop.logo_filename else 'logo.png') }}"
+             alt="Logo" height="50" class="me-3 rounded bg-white p-1 border" style="max-height:50px;" />
+        <div>
+          <h4 class="mb-0">{{ shop.shop_name if shop else 'Patidar Traders' }}</h4>
+          <small class="text-light">
+            {{ shop.address if shop else 'Mugaliya' }} |
+            <i class="bi bi-telephone"></i> {{ shop.phone if shop else '1234567890' }} |
+            <i class="bi bi-upc-scan"></i> {{ shop.gstin if shop else 'GSTN000001' }}
+          </small>
+        </div>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      {% if current_user.is_authenticated %}
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-2">
+          <li class="nav-item">
+            <a class="btn btn-light btn-sm" href="{{ url_for('index') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-light btn-sm" href="{{ url_for('products') }}"><i class="bi bi-box-seam"></i> Products</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-light btn-sm" href="{{ url_for('sales') }}"><i class="bi bi-receipt"></i> Sales</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-light btn-sm" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-danger btn-sm" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+          </li>
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </nav>
+</header>
+
+<!-- Main container -->
+<main class="container py-4">
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer>
+  &copy; {{ shop.shop_name if shop else 'Patidar Traders' }} - All Rights Reserved
+</footer>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+</body>
+</html>
