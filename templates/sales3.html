@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    /* ===== Global Styling ===== */
+    body {
+        font-size: 0.95rem;
+        background-color: #f4f6f9;
+    }
+
+    /* Card styling */
+    .card {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .card-header {
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        padding: 0.75rem 1.25rem;
+    }
+
+    /* Product cards */
+    .product-card {
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid #e0e0e0;
+    }
+    .product-card:hover {
+        background: #f8f9fa;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+    }
+    .product-card:active {
+        transform: scale(0.98);
+    }
+    .product-card {
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid #e0e0e0;
+    }
+    .product-card:hover {
+        background: #f8f9fa;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+    }
+    .product-card:active {
+        transform: scale(0.98);
+    }
+</style>
+
+<div class="row g-4">
+    <!-- Product List -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+                <span>Available Products</span>
+                <div class="d-flex gap-2">
+                    <input type="text" id="productSearch" class="form-control form-control-sm" placeholder="Search...">
+                    <select id="categoryFilter" class="form-select form-select-sm">
+                        <option value="">All</option>
+                        {% for c in categories %}
+                        <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="card-body p-2">
+                <div class="row row-cols-2 row-cols-md-3 g-3" id="productGrid">
+                    {% for p in products %}
+                    <div class="col clickable-card">
+                        <div class="product-card p-3 add-to-cart text-center rounded shadow-sm h-100 clickable-card"
+                             data-id="{{ p.id }}"
+                             data-name="{{ p.name }}"
+                             data-price="{{ '%.2f'|format(p.selling_price) }}"
+                             data-stock="{{ p.quantity }}">
+                            <img src="{{ p.image_url or url_for('static', filename='logo.png') }}"
+                                 alt="{{ p.name }}"
+                                 class="img-fluid rounded-top"
+                                 style="height: 120px; object-fit: cover; width: 100%;">
+                            <h6 class="fw-bold mb-2">{{ p.name }}</h6>
+                            <div class="text-success fw-bold mb-1">₹{{ '%.2f'|format(p.selling_price) }}</div>
+                            <span class="badge bg-secondary">Stock: {{ p.quantity }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100 d-flex flex-column">
+            <div class="card-header bg-primary text-white fw-bold">Create Sale</div>
+            <div class="card-body overflow-auto" style="flex: 1 1 auto; max-height: 65vh;">
+                <form id="saleForm" class="d-flex flex-column h-100" novalidate>
+                    <!-- Customer -->
+                    <div class="mb-3">
+                        <label for="customer" class="form-label fw-semibold">Customer Name</label>
+                        <input type="text" class="form-control" id="customer" placeholder="Enter customer name" value="Ashish" required>
+                        <div class="invalid-feedback">Customer name cannot be empty.</div>
+                    </div>
+
+                    <div id="formError" class="text-danger mb-3" role="alert" style="display:none;"></div>
+
+                    <!-- Cart Items -->
+                    <div id="cartItems" class="vstack gap-2"></div>
+                </form>
+            </div>
+
+            <!-- Sticky footer -->
+            <div class="p-3 border-top bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="fw-bold mb-0">Total:</h5>
+                    <h5 class="fw-bold text-success mb-0 fs-4">₹<span id="totalAmount">0.00</span></h5>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" form="saleForm" class="btn btn-primary btn-lg" id="submitBtn">
+                        <i class="bi bi-receipt-cutoff me-1"></i> Create Invoice
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cart Item Template -->
+<template id="cartItemTemplate">
+    <div class="cart-item d-flex align-items-center justify-content-between border p-2 rounded" data-id="">
+        <div class="flex-grow-1">
+            <div class="fw-semibold product-name"></div>
+            <small class="text-muted stock-info"></small>
+        </div>
+        <div class="input-group input-group-sm mx-2" style="width:110px;">
+            <button class="btn btn-outline-secondary qty-minus" type="button">-</button>
+            <input type="number" class="form-control text-center qty-input" min="1" value="1">
+            <button class="btn btn-outline-secondary qty-plus" type="button">+</button>
+        </div>
+        <div class="subtotal fw-bold mx-2">₹0.00</div>
+        <button type="button" class="btn btn-outline-danger btn-sm remove-item">
+            <i class="bi bi-trash"></i>
+        </button>
+    </div>
+</template>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const searchInput = document.getElementById("productSearch");
+        const categoryFilter = document.getElementById("categoryFilter");
+        const productGrid = document.getElementById("productGrid");
+        const cartItems = document.getElementById("cartItems");
+        const totalAmountEl = document.getElementById("totalAmount");
+        const cartItemTemplate = document.getElementById("cartItemTemplate").content;
+        const formError = document.getElementById("formError");
+        const saleForm = document.getElementById("saleForm");
+
+        let cart = {};
+
+        // --- Search + Category filter ---
+        function filterProducts() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const category = categoryFilter.value;
+
+            Array.from(productGrid.children).forEach(col => {
+                const card = col.querySelector(".product-card");
+                const name = card.dataset.name.toLowerCase();
+                const matchesSearch = name.includes(searchTerm);
+                const matchesCategory = !category || card.dataset.category === category;
+                col.style.display = (matchesSearch && matchesCategory) ? "" : "none";
+            });
+        }
+        searchInput.addEventListener("input", filterProducts);
+        categoryFilter.addEventListener("change", filterProducts);
+
+        // --- Add to cart ---
+        productGrid.addEventListener("click", (e) => {
+            if (e.target.classList.contains("add-to-cart")) {
+                const card = e.target.closest(".product-card");
+                const id = card.dataset.id;
+                const name = card.dataset.name;
+                const price = parseFloat(card.dataset.price);
+                const stock = parseInt(card.dataset.stock);
+
+                if (!cart[id]) {
+                    cart[id] = { id, name, price, qty: 1, stock };
+                    alert(card);
+                    renderCartItem(cart[id]);
+                } else {
+                    if (cart[id].qty < stock) {
+                        cart[id].qty++;
+                        updateCartItem(cart[id]);
+                    } else {
+                        alert("No more stock available for " + name);
+                    }
+                }
+                updateTotal();
+            }
+        });
+
+        // --- Render Cart Item ---
+        function renderCartItem(item) {
+            const node = document.importNode(cartItemTemplate, true);
+            node.querySelector(".cart-item").dataset.id = item.id;
+            node.querySelector(".product-name").textContent = item.name;
+            node.querySelector(".stock-info").textContent = `Stock: ${item.stock}`;
+            node.querySelector(".qty-input").value = item.qty;
+            node.querySelector(".subtotal").textContent = `₹${(item.price * item.qty).toFixed(2)}`;
+            cartItems.appendChild(node);
+        }
+
+        // --- Update Cart Item ---
+        function updateCartItem(item) {
+            const cartRow = cartItems.querySelector(`.cart-item[data-id="${item.id}"]`);
+            if (cartRow) {
+                cartRow.querySelector(".qty-input").value = item.qty;
+                cartRow.querySelector(".subtotal").textContent = `₹${(item.price * item.qty).toFixed(2)}`;
+            }
+        }
+
+        // --- Cart Events (qty + remove) ---
+        cartItems.addEventListener("click", (e) => {
+            const cartRow = e.target.closest(".cart-item");
+            if (!cartRow) return;
+            const id = cartRow.dataset.id;
+            const item = cart[id];
+
+            if (e.target.classList.contains("qty-plus")) {
+                if (item.qty < item.stock) {
+                    item.qty++;
+                    updateCartItem(item);
+                    updateTotal();
+                } else {
+                    alert("No more stock available");
+                }
+            }
+            if (e.target.classList.contains("qty-minus")) {
+                if (item.qty > 1) {
+                    item.qty--;
+                    updateCartItem(item);
+                    updateTotal();
+                }
+            }
+            if (e.target.classList.contains("remove-item") || e.target.closest(".remove-item")) {
+                delete cart[id];
+                cartRow.remove();
+                updateTotal();
+            }
+        });
+
+        // --- Handle direct qty input ---
+        cartItems.addEventListener("input", (e) => {
+            if (e.target.classList.contains("qty-input")) {
+                const cartRow = e.target.closest(".cart-item");
+                const id = cartRow.dataset.id;
+                const item = cart[id];
+                let newQty = parseInt(e.target.value) || 1;
+
+                if (newQty > item.stock) {
+                    newQty = item.stock;
+                    alert("Max stock reached");
+                }
+                item.qty = newQty;
+                updateCartItem(item);
+                updateTotal();
+            }
+        });
+
+        // --- Total ---
+        function updateTotal() {
+            const total = Object.values(cart).reduce((sum, item) => sum + (item.price * item.qty), 0);
+            totalAmountEl.textContent = total.toFixed(2);
+        }
+
+        // --- Create Invoice ---
+        saleForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const customerName = document.getElementById("customer").value.trim();
+
+            if (!customerName) {
+                formError.textContent = "Customer name cannot be empty.";
+                formError.style.display = "block";
+                return;
+            }
+            if (Object.keys(cart).length === 0) {
+                formError.textContent = "Cart is empty.";
+                formError.style.display = "block";
+                return;
+            }
+            formError.style.display = "none";
+
+            const payload = {
+                customer_name: customerName,
+                items: Object.values(cart).map(item => ({
+                    product_id: item.id,
+                    quantity: item.qty,
+                    price: item.price
+                }))
+            };
+
+            try {
+                const res = await fetch("/create-sale", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok && data.invoice_no) {
+                    const url = data.invoice_url || `/invoice/${data.invoice_no}`;
+                    // document.getElementById('invoiceLink').innerHTML =
+                    //     `<a href="${url}" target="_blank" class="btn btn-success">View Invoice #${data.invoice_no}</a>`;
+                    window.open(url, '_blank');
+                    alert(`Invoice #${data.invoice_no} created successfully!`);
+                    cart = {};
+                    cartItems.innerHTML = "";
+                } else {
+                    formError.textContent = data.error || 'Error creating sale.';
+                    formError.style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error creating invoice.");
+            }
+        });
+    });
+</script>
+{% endblock %}

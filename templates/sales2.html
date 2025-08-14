@@ -1,0 +1,558 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+    <!-- Product List -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-primary text-white fw-bold">Available Products</div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-left mb-0" id="productsTable">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Cost Price</th>
+                        <th>Selling Price</th>
+                        <th>Qty</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for p in products %}
+                    <tr data-product-id="{{ p.id }}">
+                        <td>{{ p.name }}</td>
+                        <td>₹{{ '%.2f'|format(p.cost_price) }}</td>
+                        <td>₹{{ '%.2f'|format(p.selling_price) }}</td>
+                        <td class="stock-cell">{{ p.quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Sale -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100 d-flex flex-column">
+            <div class="card-header bg-primary text-white fw-bold">Create Sale</div>
+
+            <!-- Scrollable form area -->
+            <div class="card-body overflow-auto" style="flex: 1 1 auto; max-height: 65vh;">
+                <form id="saleForm" class="d-flex flex-column h-100" novalidate>
+                    <!-- Customer -->
+                    <div class="mb-3">
+                        <label for="customer" class="form-label fw-semibold">Customer Name</label>
+                        <input type="text" class="form-control" id="customer" placeholder="Enter customer name"  value="Ashish" required>
+                        <div class="invalid-feedback">Customer name cannot be empty.</div>
+                    </div>
+
+                    <!-- Inline validation message container -->
+                    <div id="formError" class="text-danger mb-3" role="alert" style="display:none;"></div>
+
+                    <!-- Items container -->
+                    <div id="items"></div>
+
+                    <!-- Add item -->
+                    <div class="d-flex justify-content-end mb-3">
+                        <button id="addItem" class="btn btn-outline-secondary btn-sm" type="button">
+                            <i class="bi bi-plus-circle me-1"></i> Add Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Sticky footer -->
+            <div class="p-3 border-top bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="fw-bold mb-0">Total:</h5>
+                    <h5 class="fw-bold text-success mb-0 fs-4">₹<span id="totalAmount">0.00</span></h5>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" form="saleForm" class="btn btn-primary btn-lg" id="submitBtn">
+                        <i class="bi bi-receipt-cutoff me-1"></i> Create Invoice
+                    </button>
+                </div>
+<!--                <div id="invoiceLink" class="mt-3 text-center"></div>-->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden template for sale item row -->
+<template id="saleItemTemplate">
+    <div class="input-group mb-2 sale-item align-items-center">
+        <select class="form-select product-select" required>
+            <option value="" disabled selected>Select product</option>
+            {% for p in products %}
+            <option {% if p.quantity == 0 %} disabled {% endif %} value="{{ p.id }}" data-price="{{ '%.2f'|format(p.selling_price) }}">
+                {{ p.name }} — ₹{{ '%.2f'|format(p.selling_price) }} (Stock: {{ p.quantity }})
+            </option>
+            {% endfor %}
+        </select>
+        <input type="number" class="form-control item-qty" min="1" value="1" style="max-width:80px;">
+        <span class="input-group-text item-subtotal">₹0.00</span>
+        <button type="button" class="btn btn-outline-danger remove-item" title="Remove">
+            <i class="bi bi-trash"></i>
+        </button>
+    </div>
+    <div class="form-text text-danger small ms-1 qty-error" style="display:none;">Quantity exceeds available stock.</div>
+</template>
+
+<!--<script>-->
+<!--    document.addEventListener('DOMContentLoaded', () => {-->
+<!--        // Build products map (id -> {name, price, stock})-->
+<!--        const products = {-->
+<!--        {% for p in products %}-->
+<!--        "{{ p.id }}": { id: "{{ p.id }}", name: "{{ p.name|e }}", price: {{ '%.2f'|format(p.cost_price) }}, stock: {{ p.quantity|int }} },-->
+<!--        {% endfor %}-->
+<!--    };-->
+
+<!--        const itemsContainer = document.getElementById('items');-->
+<!--        const template = document.getElementById('saleItemTemplate');-->
+<!--        const totalAmountEl = document.getElementById('totalAmount');-->
+<!--        const formError = document.getElementById('formError');-->
+<!--        const submitBtn = document.getElementById('submitBtn');-->
+
+<!--        // Helpers to update UI state-->
+<!--        function getAllocations() {-->
+<!--            // returns { productId: totalQtyAllocatedInForm }-->
+<!--            const alloc = {};-->
+<!--            itemsContainer.querySelectorAll('.sale-item').forEach(row => {-->
+<!--                const pid = row.querySelector('.product-select').value;-->
+<!--                const qty = parseInt(row.querySelector('.item-qty').value) || 0;-->
+<!--                if (pid) alloc[pid] = (alloc[pid] || 0) + qty;-->
+<!--            });-->
+<!--            return alloc;-->
+<!--        }-->
+
+<!--        function updateStockTable() {-->
+<!--            const alloc = getAllocations();-->
+<!--            document.querySelectorAll('#productsTable tbody tr').forEach(tr => {-->
+<!--                const pid = tr.getAttribute('data-product-id');-->
+<!--                const base = products[pid]?.stock || 0;-->
+<!--                const remaining = Math.max(0, base - (alloc[pid] || 0));-->
+<!--                const cell = tr.querySelector('.stock-cell');-->
+<!--                cell.textContent = remaining;-->
+<!--                // Optional visual cue when low stock-->
+<!--                if (remaining === 0) {-->
+<!--                    cell.classList.add('text-danger', 'fw-bold');-->
+<!--                } else {-->
+<!--                    cell.classList.remove('text-danger', 'fw-bold');-->
+<!--                }-->
+<!--            });-->
+<!--        }-->
+
+<!--        function updateDropdownOptions() {-->
+<!--            const chosen = Array.from(itemsContainer.querySelectorAll('.product-select'))-->
+<!--                .map(s => s.value).filter(Boolean);-->
+
+<!--            itemsContainer.querySelectorAll('.product-select').forEach(select => {-->
+<!--                const current = select.value;-->
+<!--                Array.from(select.options).forEach(opt => {-->
+<!--                    if (!opt.value) return;-->
+<!--                    opt.hidden = chosen.includes(opt.value) && opt.value !== current;-->
+<!--                });-->
+<!--            });-->
+<!--        }-->
+
+<!--        function updateTotalsAndValidate() {-->
+<!--            let grand = 0;-->
+<!--            let hasError = false;-->
+
+<!--            const allocTotal = getAllocations();-->
+
+<!--            itemsContainer.querySelectorAll('.sale-item').forEach(row => {-->
+<!--                const select = row.querySelector('.product-select');-->
+<!--                const qtyInput = row.querySelector('.item-qty');-->
+<!--                const err = row.nextElementSibling?.classList.contains('qty-error') ? row.nextElementSibling : null;-->
+
+<!--                const pid = select.value;-->
+<!--                const price = parseFloat(select.selectedOptions[0]?.dataset.price || 0);-->
+<!--                const qty = parseInt(qtyInput.value) || 0;-->
+<!--                const subtotal = price * qty;-->
+<!--                row.querySelector('.item-subtotal').textContent = `₹${subtotal.toFixed(2)}`;-->
+<!--                grand += subtotal;-->
+
+<!--                // For this row, compute remaining stock considering ALL rows,-->
+<!--                // then "give back" this row's own qty so max allows current value.-->
+<!--                const base = products[pid]?.stock || 0;-->
+<!--                const allocatedOthers = (allocTotal[pid] || 0) - qty;-->
+<!--                const remainingForThisRow = Math.max(0, base - allocatedOthers);-->
+
+<!--                // Enforce dynamic max and show errors-->
+<!--                if (pid) {-->
+<!--                    qtyInput.max = String(remainingForThisRow);-->
+<!--                    if (qty > remainingForThisRow) {-->
+<!--                        qtyInput.classList.add('is-invalid');-->
+<!--                        if (err) err.style.display = 'block';-->
+<!--                        hasError = true;-->
+<!--                    } else {-->
+<!--                        qtyInput.classList.remove('is-invalid');-->
+<!--                        if (err) err.style.display = 'none';-->
+<!--                    }-->
+<!--                } else {-->
+<!--                    qtyInput.classList.remove('is-invalid');-->
+<!--                    if (err) err.style.display = 'none';-->
+<!--                }-->
+<!--            });-->
+
+<!--            totalAmountEl.textContent = grand.toFixed(2);-->
+<!--            submitBtn.disabled = hasError;-->
+<!--            formError.style.display = hasError ? 'block' : 'none';-->
+<!--            if (hasError) formError.textContent = 'Please fix quantity errors before submitting.';-->
+<!--        }-->
+
+<!--        function refreshAll() {-->
+<!--            updateDropdownOptions();-->
+<!--            updateTotalsAndValidate();-->
+<!--            updateStockTable();-->
+<!--        }-->
+
+<!--        function addSaleItem() {-->
+<!--            // Prevent adding if all products are already used-->
+<!--            const allIds = Object.keys(products);-->
+<!--            const used = Array.from(itemsContainer.querySelectorAll('.product-select'))-->
+<!--                .map(s => s.value).filter(Boolean);-->
+<!--            if (used.length >= allIds.length) {-->
+<!--                formError.textContent = 'All products are already selected.';-->
+<!--                formError.style.display = 'block';-->
+<!--                return;-->
+<!--            }-->
+
+<!--            const frag = template.content.cloneNode(true);-->
+<!--            const row = frag.querySelector('.sale-item');-->
+<!--            const select = row.querySelector('.product-select');-->
+<!--            const qtyInput = row.querySelector('.item-qty');-->
+
+<!--            // Wire events-->
+<!--            row.querySelector('.remove-item').addEventListener('click', () => {-->
+<!--                const rows = itemsContainer.querySelectorAll('.sale-item');-->
+<!--                if (rows.length <= 1) {-->
+<!--                    alert('At least one item is required.');-->
+<!--                    return;-->
+<!--                }-->
+<!--                row.nextElementSibling?.classList.contains('qty-error') && row.nextElementSibling.remove();-->
+<!--                row.remove();-->
+<!--                refreshAll();-->
+<!--            });-->
+
+<!--            select.addEventListener('change', () => {-->
+<!--                // When changing product, reset qty to 1 for safety against stock-->
+<!--                qtyInput.value = '1';-->
+<!--                refreshAll();-->
+<!--            });-->
+
+<!--            qtyInput.addEventListener('input', () => {-->
+<!--                // Normalize invalid values-->
+<!--                const min = parseInt(qtyInput.min) || 1;-->
+<!--                if (!qtyInput.value || parseInt(qtyInput.value) < min) qtyInput.value = String(min);-->
+<!--                refreshAll();-->
+<!--            });-->
+
+<!--            // Append to DOM-->
+<!--            itemsContainer.appendChild(frag);-->
+
+<!--            // Auto-select first available option for this new row-->
+<!--            const newRow = itemsContainer.lastElementChild; // sale-item-->
+<!--            const newSelect = newRow.querySelector('.product-select');-->
+<!--            const firstAvail = Array.from(newSelect.options).find(o => o.value && !o.hidden);-->
+<!--            if (firstAvail) newSelect.value = firstAvail.value;-->
+
+<!--            refreshAll();-->
+<!--        }-->
+
+<!--        // Buttons & submit-->
+<!--        document.getElementById('addItem').addEventListener('click', addSaleItem);-->
+
+<!--        document.getElementById('saleForm').addEventListener('submit', async (e) => {-->
+<!--            e.preventDefault();-->
+<!--            formError.style.display = 'none';-->
+
+<!--            const customer = document.getElementById('customer').value.trim();-->
+<!--            if (!customer) {-->
+<!--                formError.textContent = 'Customer name cannot be empty.';-->
+<!--                formError.style.display = 'block';-->
+<!--                return;-->
+<!--            }-->
+
+<!--            // Final validation: ensure no qty error and products chosen-->
+<!--            const rows = itemsContainer.querySelectorAll('.sale-item');-->
+<!--            if (rows.length === 0) {-->
+<!--                formError.textContent = 'Please add at least one product.';-->
+<!--                formError.style.display = 'block';-->
+<!--                return;-->
+<!--            }-->
+
+<!--            // Build payload-->
+<!--            const items = [];-->
+<!--            const alloc = getAllocations();-->
+<!--            for (const row of rows) {-->
+<!--                const pid = row.querySelector('.product-select').value;-->
+<!--                const qty = parseInt(row.querySelector('.item-qty').value) || 0;-->
+<!--                if (!pid || qty < 1) {-->
+<!--                    formError.textContent = 'Please select products and valid quantities.';-->
+<!--                    formError.style.display = 'block';-->
+<!--                    return;-->
+<!--                }-->
+<!--                // Check against stock-->
+<!--                if (alloc[pid] > (products[pid]?.stock || 0)) {-->
+<!--                    formError.textContent = 'One or more items exceed available stock.';-->
+<!--                    formError.style.display = 'block';-->
+<!--                    return;-->
+<!--                }-->
+<!--                items.push({ product_id: pid, quantity: qty });-->
+<!--            }-->
+
+<!--            // Submit-->
+<!--            try {-->
+<!--                submitBtn.disabled = true;-->
+<!--                const res = await fetch('/create-sale', {-->
+<!--                    method: 'POST',-->
+<!--                    headers: { 'Content-Type': 'application/json' },-->
+<!--                    body: JSON.stringify({ customer_name: customer, items })-->
+<!--                });-->
+<!--                const data = await res.json();-->
+
+<!--                if (res.ok && data.invoice_no) {-->
+<!--                    // Show link and (optionally) auto-open-->
+<!--                    const url = data.invoice_url || `/invoice/${data.invoice_no}`;-->
+<!--                    document.getElementById('invoiceLink').innerHTML =-->
+<!--                        `<a href="${url}" target="_blank" class="btn btn-success">View Invoice #${data.invoice_no}</a>`;-->
+<!--                    window.open(url, '_blank'); // auto-open new tab-->
+<!--                    // Reset form UI-->
+<!--                    itemsContainer.innerHTML = '';-->
+<!--                    addSaleItem();-->
+<!--                } else {-->
+<!--                    formError.textContent = data.error || 'Error creating sale.';-->
+<!--                    formError.style.display = 'block';-->
+<!--                }-->
+<!--            } catch (err) {-->
+<!--                formError.textContent = 'Network error. Please try again.';-->
+<!--                formError.style.display = 'block';-->
+<!--            } finally {-->
+<!--                submitBtn.disabled = false;-->
+<!--                refreshAll();-->
+<!--            }-->
+<!--        });-->
+
+<!--        // Start with one row-->
+<!--        addSaleItem();-->
+<!--    });-->
+<!--</script>-->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const products = {
+        {% for p in products %}
+        "{{ p.id }}": { id: "{{ p.id }}", name: "{{ p.name|e }}", price: {{ '%.2f'|format(p.selling_price) }}, stock: {{ p.quantity|int }} },
+        {% endfor %}
+    };
+
+        const itemsContainer = document.getElementById('items');
+        const template = document.getElementById('saleItemTemplate');
+        const totalAmountEl = document.getElementById('totalAmount');
+        const formError = document.getElementById('formError');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function getAllocations() {
+            const alloc = {};
+            itemsContainer.querySelectorAll('.sale-item').forEach(row => {
+                const pid = row.querySelector('.product-select').value;
+                const qty = parseInt(row.querySelector('.item-qty').value) || 0;
+                if (pid) alloc[pid] = (alloc[pid] || 0) + qty;
+            });
+            return alloc;
+        }
+
+        function updateStockTable() {
+            const alloc = getAllocations();
+            document.querySelectorAll('#productsTable tbody tr').forEach(tr => {
+                const pid = tr.getAttribute('data-product-id');
+                const base = products[pid]?.stock || 0;
+                const remaining = Math.max(0, base - (alloc[pid] || 0));
+                const cell = tr.querySelector('.stock-cell');
+                cell.textContent = remaining;
+                if (remaining === 0) cell.classList.add('text-danger', 'fw-bold');
+                else cell.classList.remove('text-danger', 'fw-bold');
+            });
+        }
+
+        function updateDropdownOptions() {
+            const chosen = Array.from(itemsContainer.querySelectorAll('.product-select'))
+                .map(s => s.value).filter(Boolean);
+
+            itemsContainer.querySelectorAll('.product-select').forEach(select => {
+                const current = select.value;
+                Array.from(select.options).forEach(opt => {
+                    if (!opt.value) return; // skip placeholder
+                    opt.disabled = chosen.includes(opt.value) && opt.value !== current;
+                });
+            });
+        }
+
+        function updateTotalsAndValidate() {
+            let grand = 0, hasError = false;
+            const allocTotal = getAllocations();
+
+            itemsContainer.querySelectorAll('.sale-item').forEach(row => {
+                const select = row.querySelector('.product-select');
+                const qtyInput = row.querySelector('.item-qty');
+                const err = row.nextElementSibling?.classList.contains('qty-error') ? row.nextElementSibling : null;
+
+                const pid = select.value;
+                const price = parseFloat(select.selectedOptions[0]?.dataset.price || 0);
+                const qty = parseInt(qtyInput.value) || 0;
+                const subtotal = price * qty;
+                row.querySelector('.item-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+                grand += subtotal;
+
+                if (pid) {
+                    const base = products[pid]?.stock || 0;
+                    const allocatedOthers = (allocTotal[pid] || 0) - qty;
+                    const remainingForThisRow = Math.max(0, base - allocatedOthers);
+
+                    qtyInput.max = remainingForThisRow;
+                    if (qty > remainingForThisRow) {
+                        qtyInput.classList.add('is-invalid');
+                        if (err) err.style.display = 'block';
+                        hasError = true;
+                    } else {
+                        qtyInput.classList.remove('is-invalid');
+                        if (err) err.style.display = 'none';
+                    }
+                } else {
+                    qtyInput.classList.remove('is-invalid');
+                    if (err) err.style.display = 'none';
+                }
+            });
+
+            totalAmountEl.textContent = grand.toFixed(2);
+            submitBtn.disabled = hasError;
+            formError.style.display = hasError ? 'block' : 'none';
+            if (hasError) formError.textContent = 'Please fix quantity errors before submitting.';
+        }
+
+        function refreshAll() {
+            updateDropdownOptions();
+            updateTotalsAndValidate();
+            updateStockTable();
+        }
+
+        function addSaleItem() {
+            const allIds = Object.keys(products);
+            const used = Array.from(itemsContainer.querySelectorAll('.product-select'))
+                .map(s => s.value).filter(Boolean);
+            if (used.length >= allIds.length) {
+                formError.textContent = 'All products are already selected.';
+                formError.style.display = 'block';
+                return;
+            }
+
+            const frag = template.content.cloneNode(true);
+            const row = frag.querySelector('.sale-item');
+            const select = row.querySelector('.product-select');
+            const qtyInput = row.querySelector('.item-qty');
+
+            row.querySelector('.remove-item').addEventListener('click', () => {
+                const rows = itemsContainer.querySelectorAll('.sale-item');
+                if (rows.length <= 1) {
+                    alert('At least one item is required.');
+                    return;
+                }
+                row.nextElementSibling?.classList.contains('qty-error') && row.nextElementSibling.remove();
+                row.remove();
+                refreshAll();
+            });
+
+            select.addEventListener('change', () => {
+                qtyInput.value = '1';
+                refreshAll();
+            });
+
+            qtyInput.addEventListener('input', () => {
+                const min = parseInt(qtyInput.min) || 1;
+                if (!qtyInput.value || parseInt(qtyInput.value) < min) qtyInput.value = String(min);
+                refreshAll();
+            });
+
+            itemsContainer.appendChild(frag);
+
+            // Auto-select first available option
+            const newRow = itemsContainer.lastElementChild;
+            const newSelect = newRow.querySelector('.product-select');
+            const firstAvail = Array.from(newSelect.options).find(o => o.value && !o.disabled);
+            if (firstAvail) newSelect.value = firstAvail.value;
+
+            refreshAll();
+        }
+
+        document.getElementById('addItem').addEventListener('click', addSaleItem);
+
+        document.getElementById('saleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            formError.style.display = 'none';
+
+            const customer = document.getElementById('customer').value.trim();
+            if (!customer) {
+                formError.textContent = 'Customer name cannot be empty.';
+                formError.style.display = 'block';
+                return;
+            }
+
+            const rows = itemsContainer.querySelectorAll('.sale-item');
+            if (rows.length === 0) {
+                formError.textContent = 'Please add at least one product.';
+                formError.style.display = 'block';
+                return;
+            }
+
+            const items = [];
+            const alloc = getAllocations();
+            for (const row of rows) {
+                const pid = row.querySelector('.product-select').value;
+                const qty = parseInt(row.querySelector('.item-qty').value) || 0;
+                if (!pid || qty < 1) {
+                    formError.textContent = 'Please select products and valid quantities.';
+                    formError.style.display = 'block';
+                    return;
+                }
+                if (alloc[pid] > (products[pid]?.stock || 0)) {
+                    formError.textContent = 'One or more items exceed available stock.';
+                    formError.style.display = 'block';
+                    return;
+                }
+                items.push({ product_id: pid, quantity: qty });
+            }
+
+            try {
+                submitBtn.disabled = true;
+                const res = await fetch('/create-sale', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customer_name: customer, items })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.invoice_no) {
+                    const url = data.invoice_url || `/invoice/${data.invoice_no}`;
+                    // document.getElementById('invoiceLink').innerHTML =
+                    //     `<a href="${url}" target="_blank" class="btn btn-success">View Invoice #${data.invoice_no}</a>`;
+                    window.open(url, '_blank');
+                    itemsContainer.innerHTML = '';
+                    addSaleItem();
+                } else {
+                    formError.textContent = data.error || 'Error creating sale.';
+                    formError.style.display = 'block';
+                }
+            } catch (err) {
+                formError.textContent = 'Network error. Please try again.';
+                formError.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                refreshAll();
+            }
+        });
+
+        addSaleItem(); // initial row
+    });
+</script>
+
+{% endblock %}

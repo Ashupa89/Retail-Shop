@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request, flash , js
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Product, Sale, SaleItem, ShopSetting, ShopInfo
+from models import db, User, Product, Sale, SaleItem, ShopSetting, ShopInfo, Payment
 from datetime import datetime
 from invoice import generate_invoice_pdf, format_invoice_no
 from weasyprint import HTML
@@ -11,6 +11,7 @@ import os
 import pandas as pd
 from werkzeug.utils import secure_filename
 import io
+import csv
 
 # -------------------------
 # App & Config
@@ -43,8 +44,9 @@ def index():
     products = Product.query.all()
     sales = Sale.query.order_by(Sale.created_at.desc()).limit(5).all()
     low_stock = [p for p in products if p.quantity <= p.low_stock_threshold]
+    shop = ShopInfo.query.first()
     return render_template('index.html',
-        products=products, sales=sales, low_stock=low_stock
+        products=products, sales=sales, low_stock=low_stock ,shop=shop
     )
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -73,7 +75,8 @@ def logout():
 @login_required
 def products():
     items = Product.query.all()
-    return render_template('products.html', products=items)
+    shop = ShopInfo.query.first()
+    return render_template('products.html', products=items,shop=shop)
 
 # -------------------------
 # DB Init with Admin
@@ -191,7 +194,8 @@ def sales():
         flash('Sale recorded and invoice generated.', 'success')
         return redirect(url_for('invoice', sale_id=sale.id))
     sales = Sale.query.order_by(Sale.created_at.desc()).all()
-    return render_template('sales.html', products=products, sales=sales)
+    shop = ShopInfo.query.first()
+    return render_template('sales.html', products=products, sales=sales,shop=shop)
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -371,30 +375,29 @@ def create_sale():
     if not items_data:
         return jsonify({'error': 'At least one item is required'}), 400
 
+    payment_amount = float(data.get('payment_amount', 0))  # optional initial payment
+
     try:
-        # Cleanup: delete sales older than the last 10
-        last_10_sales = Sale.query.order_by(Sale.id.desc()).limit(5).all()
-        if last_10_sales:
-            # Get the minimum id to keep
-            min_id_to_keep = last_10_sales[-1].id
-            # Delete older sales
+        # Cleanup old sales (keep last 5)
+        last_5_sales = Sale.query.order_by(Sale.id.desc()).limit(5).all()
+        if last_5_sales:
+            min_id_to_keep = last_5_sales[-1].id
             old_sales = Sale.query.filter(Sale.id < min_id_to_keep).all()
             for old_sale in old_sales:
-                # Delete invoice PDF
                 invoice_file = os.path.join('invoices', f"{old_sale.invoice_no}.pdf")
                 if os.path.exists(invoice_file):
                     os.remove(invoice_file)
-                # Delete related sale items
                 SaleItem.query.filter_by(sale_id=old_sale.id).delete()
+                Payment.query.filter_by(sale_id=old_sale.id).delete()
                 db.session.delete(old_sale)
             db.session.commit()
 
-        # Generate next invoice number
+        # Generate invoice number
         last = Sale.query.order_by(Sale.id.desc()).first()
         next_no = 1 if not last else last.id + 1
         inv_no = format_invoice_no(next_no)
 
-        # Create sale
+        # Create Sale
         sale = Sale(invoice_no=inv_no, customer_name=customer_name, total=0)
         db.session.add(sale)
         db.session.flush()  # get sale.id
@@ -423,6 +426,15 @@ def create_sale():
             db.session.add(sale_item)
 
         sale.total = total
+        db.session.flush()
+
+        # Create Payment if amount > 0
+        if payment_amount > 0:
+            if payment_amount > total:
+                payment_amount = total  # cannot pay more than total
+            payment = Payment(sale_id=sale.id, amount=payment_amount)
+            db.session.add(payment)
+
         db.session.commit()
 
         # Generate invoice PDF
@@ -430,7 +442,12 @@ def create_sale():
         invoice_path = os.path.join('invoices', f"{sale.invoice_no}.pdf")
         generate_invoice_pdf(sale.id, invoice_path)
 
-        return jsonify({'invoice': invoice_path, 'invoice_no': sale.invoice_no})
+        return jsonify({
+            'invoice': invoice_path,
+            'invoice_no': sale.invoice_no,
+            'paid_amount': payment_amount,
+            'due_amount': sale.total - payment_amount
+        })
 
     except SQLAlchemyError as e:
         db.session.rollback()
@@ -464,6 +481,68 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required
+from datetime import datetime
+from models import Sale, Payment, db
+
+@app.route('/payments', methods=['GET', 'POST'])
+@login_required
+def payments():
+    if request.method == 'POST':
+        sale_id = request.form.get('sale_id')
+        amount = request.form.get('amount')
+        if not sale_id or not amount:
+            flash("Sale or amount missing!", "danger")
+            return redirect(url_for('payments'))
+
+        try:
+            amount = float(amount)
+        except ValueError:
+            flash("Invalid amount!", "danger")
+            return redirect(url_for('payments'))
+
+        sale = Sale.query.get(sale_id)
+        if not sale:
+            flash("Sale not found!", "danger")
+            return redirect(url_for('payments'))
+
+        # Add new payment
+        payment = Payment(sale_id=sale.id, amount=amount)
+        db.session.add(payment)
+        db.session.commit()
+        flash(f"Payment of ₹{amount:.2f} recorded for Invoice {sale.invoice_no}", "success")
+        return redirect(url_for('payments'))
+
+    # GET request: show all sales
+    sales = Sale.query.order_by(Sale.created_at.desc()).all()
+    return render_template('payments.html', sales=sales,Payment=Payment)
+
+@app.route('/add-payment/<int:sale_id>', methods=['POST'])
+@login_required
+def add_payment(sale_id):
+    try:
+        sale = Sale.query.get_or_404(sale_id)
+        data = request.get_json()
+        if not data or 'amount' not in data:
+            return jsonify({'error': 'Invalid request'}), 400
+
+        amount = float(data['amount'])
+        due = sale.total - sale.paid_amount
+
+        if amount <= 0 or amount > due:
+            return jsonify({'error': 'Invalid payment amount'}), 400
+
+        payment = Payment(sale_id=sale.id, amount=amount)
+        db.session.add(payment)
+        db.session.commit()
+        return jsonify({'success': True, 'paid_amount': sale.paid_amount + amount})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # -------------------------
 # Main Entry
 # -------------------------

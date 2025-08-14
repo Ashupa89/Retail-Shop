@@ -1,15 +1,323 @@
 {% extends "base.html" %}
 {% block content %}
+<!--<div class="card shadow-sm border-0">-->
+<!--    <div class="card-header bg-primary text-white d-flex flex-wrap justify-content-between align-items-center gap-2">-->
+<!--        <h5 class="mb-0"><i class="bi bi-box-seam"></i> Products</h5>-->
+<!--        <div class="d-flex flex-wrap gap-2">-->
+<!--            &lt;!&ndash; Add Product &ndash;&gt;-->
+<!--            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addProductModal">-->
+<!--                <i class="bi bi-plus-circle"></i> Add-->
+<!--            </button>-->
+
+<!--            &lt;!&ndash; More Actions Dropdown &ndash;&gt;-->
+<!--            <div class="dropdown">-->
+<!--                <button class="btn btn-light btn-sm dropdown-toggle" type="button" id="moreActionsDropdown" data-bs-toggle="dropdown">-->
+<!--                    <i class="bi bi-three-dots"></i>-->
+<!--                </button>-->
+<!--                <ul class="dropdown-menu">-->
+<!--                    <li><a class="dropdown-item" href="{{ url_for('import_products') }}"><i class="bi bi-upload"></i> Import</a></li>-->
+<!--                    <li><a class="dropdown-item" href="{{ url_for('export_products') }}"><i class="bi bi-download"></i> Export</a></li>-->
+<!--                </ul>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; Search &ndash;&gt;-->
+<!--            <input id="searchInput" type="search" class="form-control form-control-sm rounded-pill" placeholder="Search..." style="min-width: 200px;">-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <div class="card-body p-0">-->
+<!--        &lt;!&ndash; Products Table &ndash;&gt;-->
+<!--        <div class="table-responsive">-->
+<!--            <table class="table table-striped table-hover align-middle">-->
+<!--                <thead class="table-primary">-->
+<!--                <tr class="text-center">-->
+<!--                    <th>Name</th>-->
+<!--&lt;!&ndash;                    <th>Category</th>&ndash;&gt;-->
+<!--                    <th>Cost Price (₹)</th>-->
+<!--                    <th>Selling Price (₹)</th>-->
+<!--                    <th>Quantity</th>-->
+<!--                    <th>Threshold</th>-->
+<!--                    <th>Actions</th>-->
+<!--                </tr>-->
+<!--                </thead>-->
+<!--                <tbody>-->
+<!--                {% for p in products %}-->
+<!--                <tr class="text-center align-middle {% if p.quantity <= p.low_stock_threshold %}table-danger{% endif %}">-->
+<!--                    <td>{{ p.name }}</td>-->
+<!--&lt;!&ndash;                    <td>{{ p.category }}</td>&ndash;&gt;-->
+<!--                    <td>{{ '%.2f'|format(p.cost_price) }}</td>-->
+<!--                    <td>{{ '%.2f'|format(p.selling_price) }}</td>-->
+<!--                    <td>{{ p.quantity }}</td>-->
+<!--                    <td>{{ p.low_stock_threshold }}</td>-->
+<!--                    <td class="d-flex gap-2 justify-content-center">-->
+<!--                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"-->
+<!--                                data-bs-target="#editProductModal"-->
+<!--                                data-id="{{ p.id }}"-->
+<!--                                data-name="{{ p.name }}"-->
+<!--                                data-category="{{ p.category }}"-->
+<!--                                data-cost_price="{{ p.cost_price }}"-->
+<!--                                data-selling_price="{{ p.selling_price }}"-->
+<!--                                data-quantity="{{ p.quantity }}"-->
+<!--                                data-threshold="{{ p.low_stock_threshold }}">-->
+<!--                            <i class="bi bi-pencil-square"></i>-->
+<!--                        </button>-->
+<!--                        <a href="{{ url_for('delete_product', pid=p.id) }}"-->
+<!--                           onclick="return confirm('Delete product: {{ p.name }}?');">-->
+<!--                            <button type="button" class="btn btn-outline-danger btn-sm">-->
+<!--                                <i class="bi bi-trash"></i>-->
+<!--                            </button>-->
+<!--                        </a>-->
+
+<!--                    </td>-->
+<!--                </tr>-->
+<!--                {% else %}-->
+<!--                <tr>-->
+<!--                    <td colspan="7" class="text-center text-muted">No products found.</td>-->
+<!--                </tr>-->
+<!--                {% endfor %}-->
+<!--                </tbody>-->
+<!--            </table>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; Pagination &ndash;&gt;-->
+<!--        <nav aria-label="Product pagination" class="mt-3">-->
+<!--            <ul class="pagination justify-content-center" id="pagination"></ul>-->
+<!--        </nav>-->
+<!--    </div>-->
+<!--</div>-->
+<!--&lt;!&ndash; Add Product Modal &ndash;&gt;-->
+<!--<div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductLabel" aria-hidden="true">-->
+<!--    <div class="modal-dialog modal-dialog-scrollable">-->
+<!--        <form method="POST" action="{{ url_for('add_product') }}" class="needs-validation" novalidate>-->
+<!--            <div class="modal-content">-->
+<!--                <div class="modal-header">-->
+<!--                    <h5 class="modal-title" id="addProductLabel">Add New Product</h5>-->
+<!--                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
+<!--                </div>-->
+<!--                <div class="modal-body">-->
+<!--                    <div class="form-floating mb-3">-->
+<!--                        <input id="add-name" type="text" name="name" class="form-control" placeholder="Product Name" required autofocus>-->
+<!--                        <label for="add-name">Name <span class="text-danger">*</span></label>-->
+<!--                        <div class="invalid-feedback">Please enter the product name.</div>-->
+<!--                    </div>-->
+<!--                    <div class="form-floating mb-3">-->
+<!--                        <input id="add-category" type="text" name="category" class="form-control" placeholder="Category (Optional)">-->
+<!--                        <label for="add-category">Category</label>-->
+<!--                    </div>-->
+<!--                    <div class="row g-3 mb-3">-->
+<!--                        <div class="col-md-6 form-floating">-->
+<!--                            <input id="add-cost_price" type="number" name="cost_price" step="0.01" min="0"-->
+<!--                                   class="form-control" placeholder="Cost Price" required>-->
+<!--                            <label for="add-cost_price">Cost Price (₹) <span class="text-danger">*</span></label>-->
+<!--                            <div class="invalid-feedback">Please enter a valid cost price (≥ 0).</div>-->
+<!--                        </div>-->
+<!--                        <div class="col-md-6 form-floating">-->
+<!--                            <input id="add-selling_price" type="number" name="selling_price" step="0.01" min="0"-->
+<!--                                   class="form-control" placeholder="Selling Price" required>-->
+<!--                            <label for="add-selling_price">Selling Price (₹) <span class="text-danger">*</span></label>-->
+<!--                            <div class="invalid-feedback">Please enter a valid selling price (≥ 0).</div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    <div class="row g-3 mb-3">-->
+<!--                        <div class="col-md-6 form-floating">-->
+<!--                            <input id="add-quantity" type="number" name="quantity" min="0" class="form-control"-->
+<!--                                   placeholder="Quantity" required value="0">-->
+<!--                            <label for="add-quantity">Quantity <span class="text-danger">*</span></label>-->
+<!--                            <div class="invalid-feedback">Please enter a non-negative quantity.</div>-->
+<!--                        </div>-->
+<!--                        <div class="col-md-6 form-floating">-->
+<!--                            <input id="add-threshold" type="number" name="threshold" min="0" class="form-control"-->
+<!--                                   placeholder="Low Stock Threshold" required value="5">-->
+<!--                            <label for="add-threshold">Low Stock Threshold <span class="text-danger">*</span></label>-->
+<!--                            <div class="form-text">Alert when stock is at or below this level.</div>-->
+<!--                            <div class="invalid-feedback">Please enter a valid threshold (≥ 0).</div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="modal-footer">-->
+<!--                    <button type="submit" class="btn btn-primary">-->
+<!--                        <i class="fa-solid fa-plus me-1"></i> Add Product-->
+<!--                    </button>-->
+<!--                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </form>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; Edit Product Modal &ndash;&gt;-->
+<!--<div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductLabel" aria-hidden="true">-->
+<!--    <div class="modal-dialog modal-dialog-scrollable">-->
+<!--        <form method="POST" id="editProductForm" class="needs-validation" novalidate>-->
+<!--            <div class="modal-content">-->
+<!--                <div class="modal-header">-->
+<!--                    <h5 class="modal-title" id="editProductLabel">Edit Product</h5>-->
+<!--                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
+<!--                </div>-->
+<!--                <div class="modal-body">-->
+<!--                    <input type="hidden" name="pid" id="edit-pid">-->
+<!--                    <div class="form-floating mb-3">-->
+<!--                        <input id="edit-name" type="text" name="name" class="form-control" placeholder="Product Name" required>-->
+<!--                        <label for="edit-name">Name <span class="text-danger">*</span></label>-->
+<!--                        <div class="invalid-feedback">Please enter the product name.</div>-->
+<!--                    </div>-->
+<!--                    <div class="form-floating mb-3">-->
+<!--                        <input id="edit-category" type="text" name="category" class="form-control" placeholder="Category (Optional)">-->
+<!--                        <label for="edit-category">Category</label>-->
+<!--                    </div>-->
+<!--                    <div class="row g-3 mb-3">-->
+<!--                        <div class="col-md-6 form-floating">-->
+<!--                            <input id="edit-cost_price" type="number" name="cost_price" step="0.01" min="0" class="form-control" placeholder="Cost Price" required>-->
+<!--                            <label for="edit-cost_price">Cost Price (₹) <span class="text-danger">*</span></label>-->
+<!--                            <div class="invalid-feedback">Please enter a valid cost price (≥ 0).</div>-->
+<!--                        </div>-->
+<!--                        <div class="col-md-6 form-floating">-->
+<!--                            <input id="edit-selling_price" type="number" name="selling_price" step="0.01" min="0" class="form-control" placeholder="Selling Price" required>-->
+<!--                            <label for="edit-selling_price">Selling Price (₹) <span class="text-danger">*</span></label>-->
+<!--                            <div class="invalid-feedback">Please enter a valid selling price (≥ 0).</div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    <div class="row g-3 mb-3">-->
+<!--                        <div class="col-md-6 form-floating">-->
+<!--                            <input id="edit-quantity" type="number" name="quantity" min="0" class="form-control" placeholder="Quantity" required>-->
+<!--                            <label for="edit-quantity">Quantity <span class="text-danger">*</span></label>-->
+<!--                            <div class="invalid-feedback">Please enter a non-negative quantity.</div>-->
+<!--                        </div>-->
+<!--                        <div class="col-md-6 form-floating">-->
+<!--                            <input id="edit-threshold" type="number" name="threshold" min="0" class="form-control" placeholder="Low Stock Threshold" required>-->
+<!--                            <label for="edit-threshold">Low Stock Threshold <span class="text-danger">*</span></label>-->
+<!--                            <div class="form-text">Alert when stock is at or below this level.</div>-->
+<!--                            <div class="invalid-feedback">Please enter a valid threshold (≥ 0).</div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="modal-footer">-->
+<!--                    <button type="submit" class="btn btn-primary">-->
+<!--                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes-->
+<!--                    </button>-->
+<!--                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </form>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<script>-->
+<!--    document.addEventListener('DOMContentLoaded', () => {-->
+<!--        // Initialize Bootstrap tooltips-->
+<!--        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));-->
+<!--        tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));-->
+
+<!--        // Edit Modal population-->
+<!--        const editModal = document.getElementById('editProductModal');-->
+<!--        editModal.addEventListener('show.bs.modal', event => {-->
+<!--            const button = event.relatedTarget;-->
+<!--            const form = document.getElementById('editProductForm');-->
+
+<!--            form.action = '/products/edit/' + button.dataset.id;-->
+<!--            document.getElementById('edit-pid').value = button.dataset.id;-->
+<!--            document.getElementById('edit-name').value = button.dataset.name;-->
+<!--            document.getElementById('edit-category').value = button.dataset.category || '';-->
+<!--            document.getElementById('edit-cost_price').value = button.dataset.cost_price;-->
+<!--            document.getElementById('edit-selling_price').value = button.dataset.selling_price;-->
+<!--            document.getElementById('edit-quantity').value = button.dataset.quantity;-->
+<!--            document.getElementById('edit-threshold').value = button.dataset.threshold;-->
+<!--        });-->
+
+<!--        // Bootstrap form validation-->
+<!--        const forms = document.querySelectorAll('.needs-validation');-->
+<!--        Array.from(forms).forEach(form => {-->
+<!--            form.addEventListener('submit', event => {-->
+<!--                if (!form.checkValidity()) {-->
+<!--                    event.preventDefault();-->
+<!--                    event.stopPropagation();-->
+<!--                }-->
+<!--                form.classList.add('was-validated');-->
+<!--            }, false);-->
+<!--        });-->
+
+<!--        // Search Filter-->
+<!--        document.getElementById('searchInput').addEventListener('input', function () {-->
+<!--            const filter = this.value.toLowerCase();-->
+<!--            const rows = document.querySelectorAll('tbody tr');-->
+<!--            rows.forEach(row => {-->
+<!--                if (row.querySelector('td[colspan]')) {-->
+<!--                    row.style.display = filter ? 'none' : '';-->
+<!--                    return;-->
+<!--                }-->
+<!--                const text = row.textContent.toLowerCase();-->
+<!--                row.style.display = text.includes(filter) ? '' : 'none';-->
+<!--            });-->
+<!--            setupPagination();-->
+<!--        });-->
+
+<!--        // Pagination-->
+<!--        const rowsPerPage = 10;-->
+<!--        const tableBody = document.querySelector('tbody');-->
+<!--        const pagination = document.getElementById('pagination');-->
+
+<!--        function getVisibleRows() {-->
+<!--            return Array.from(tableBody.querySelectorAll('tr')).filter(row => row.style.display !== 'none');-->
+<!--        }-->
+
+<!--        function showPage(page) {-->
+<!--            const visibleRows = getVisibleRows();-->
+<!--            const start = (page - 1) * rowsPerPage;-->
+<!--            const end = start + rowsPerPage;-->
+<!--            visibleRows.forEach((row, i) => {-->
+<!--                row.style.display = (i >= start && i < end) ? '' : 'none';-->
+<!--            });-->
+<!--        }-->
+
+<!--        function setupPagination() {-->
+<!--            pagination.innerHTML = '';-->
+<!--            const visibleRows = getVisibleRows();-->
+<!--            const pageCount = Math.ceil(visibleRows.length / rowsPerPage);-->
+
+<!--            if (pageCount <= 1) {-->
+<!--                pagination.style.display = 'none';-->
+<!--                return;-->
+<!--            } else {-->
+<!--                pagination.style.display = 'flex';-->
+<!--            }-->
+
+<!--            for (let i = 1; i <= pageCount; i++) {-->
+<!--                const li = document.createElement('li');-->
+<!--                li.classList.add('page-item');-->
+<!--                if (i === 1) li.classList.add('active');-->
+<!--                li.innerHTML = `<a href="#" class="page-link">${i}</a>`;-->
+<!--                li.addEventListener('click', e => {-->
+<!--                    e.preventDefault();-->
+<!--                    document.querySelectorAll('.pagination .page-item').forEach(item => item.classList.remove('active'));-->
+<!--                    li.classList.add('active');-->
+<!--                    showPage(i);-->
+<!--                });-->
+<!--                pagination.appendChild(li);-->
+<!--            }-->
+<!--            showPage(1);-->
+<!--        }-->
+
+<!--        setupPagination();-->
+<!--    });-->
+<!--</script>-->
+
+<style>
+    .card { border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .card-header { font-size: 0.95rem; }
+    .table td, .table th { vertical-align: middle; font-size: 0.85rem; }
+    .low-stock { background-color: #fff3cd !important; }
+    .out-of-stock { background-color: #f8d7da !important; opacity: 0.7; }
+    .table-actions button { padding: 0.25rem 0.4rem; font-size: 0.8rem; }
+    input[type="search"] { min-width: 180px; }
+</style>
+
 <div class="card shadow-sm border-0">
     <div class="card-header bg-primary text-white d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="mb-0"><i class="bi bi-box-seam"></i> Products</h5>
         <div class="d-flex flex-wrap gap-2">
-            <!-- Add Product -->
             <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addProductModal">
                 <i class="bi bi-plus-circle"></i> Add
             </button>
-
-            <!-- More Actions Dropdown -->
             <div class="dropdown">
                 <button class="btn btn-light btn-sm dropdown-toggle" type="button" id="moreActionsDropdown" data-bs-toggle="dropdown">
                     <i class="bi bi-three-dots"></i>
@@ -19,20 +327,16 @@
                     <li><a class="dropdown-item" href="{{ url_for('export_products') }}"><i class="bi bi-download"></i> Export</a></li>
                 </ul>
             </div>
-
-            <!-- Search -->
-            <input id="searchInput" type="search" class="form-control form-control-sm rounded-pill" placeholder="Search..." style="min-width: 200px;">
+            <input id="searchInput" type="search" class="form-control form-control-sm rounded-pill" placeholder="Search...">
         </div>
     </div>
 
     <div class="card-body p-0">
-        <!-- Products Table -->
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle">
-                <thead class="table-primary">
-                <tr class="text-center">
+                <thead class="table-primary text-center">
+                <tr>
                     <th>Name</th>
-                    <th>Category</th>
                     <th>Cost Price (₹)</th>
                     <th>Selling Price (₹)</th>
                     <th>Quantity</th>
@@ -42,14 +346,16 @@
                 </thead>
                 <tbody>
                 {% for p in products %}
-                <tr class="text-center align-middle {% if p.quantity <= p.low_stock_threshold %}table-danger{% endif %}">
+                <tr class="text-center align-middle
+                    {% if p.quantity == 0 %}out-of-stock{% elif p.quantity <= p.low_stock_threshold %}low-stock{% endif %}"
+                    data-bs-toggle="tooltip"
+                    title="Cost: ₹{{ '%.2f'|format(p.cost_price) }}&#10;Selling: ₹{{ '%.2f'|format(p.selling_price) }}&#10;Stock: {{ p.quantity }}">
                     <td>{{ p.name }}</td>
-                    <td>{{ p.category }}</td>
                     <td>{{ '%.2f'|format(p.cost_price) }}</td>
                     <td>{{ '%.2f'|format(p.selling_price) }}</td>
                     <td>{{ p.quantity }}</td>
                     <td>{{ p.low_stock_threshold }}</td>
-                    <td class="d-flex gap-2 justify-content-center">
+                    <td class="d-flex gap-1 justify-content-center table-actions">
                         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#editProductModal"
                                 data-id="{{ p.id }}"
@@ -58,31 +364,34 @@
                                 data-cost_price="{{ p.cost_price }}"
                                 data-selling_price="{{ p.selling_price }}"
                                 data-quantity="{{ p.quantity }}"
-                                data-threshold="{{ p.low_stock_threshold }}">
+                                data-threshold="{{ p.low_stock_threshold }}"
+                                {% if p.quantity == 0 %}disabled{% endif %}>
                             <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm"
-                                onclick="return confirm('Delete product: {{ p.name }}?');">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                        <a href="{{ url_for('delete_product', pid=p.id) }}"
+                           onclick="return confirm('Delete product: {{ p.name }}?');">
+                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                    {% if p.quantity == 0 %}disabled{% endif %}>
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </a>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="text-center text-muted">No products found.</td>
+                    <td colspan="6" class="text-center text-muted">No products found.</td>
                 </tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- Pagination -->
-        <nav aria-label="Product pagination" class="mt-3">
+        <nav aria-label="Product pagination" class="mt-2">
             <ul class="pagination justify-content-center" id="pagination"></ul>
         </nav>
     </div>
 </div>
-<!-- Add Product Modal -->
+
 <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
         <form method="POST" action="{{ url_for('add_product') }}" class="needs-validation" novalidate>
@@ -201,16 +510,15 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Initialize Bootstrap tooltips
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+        // Initialize tooltips
+        const tooltipList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipList.forEach(el => new bootstrap.Tooltip(el));
 
         // Edit Modal population
         const editModal = document.getElementById('editProductModal');
         editModal.addEventListener('show.bs.modal', event => {
             const button = event.relatedTarget;
             const form = document.getElementById('editProductForm');
-
             form.action = '/products/edit/' + button.dataset.id;
             document.getElementById('edit-pid').value = button.dataset.id;
             document.getElementById('edit-name').value = button.dataset.name;
@@ -221,7 +529,7 @@
             document.getElementById('edit-threshold').value = button.dataset.threshold;
         });
 
-        // Bootstrap form validation
+        // Form validation
         const forms = document.querySelectorAll('.needs-validation');
         Array.from(forms).forEach(form => {
             form.addEventListener('submit', event => {
@@ -233,17 +541,14 @@
             }, false);
         });
 
-        // Search Filter
-        document.getElementById('searchInput').addEventListener('input', function () {
-            const filter = this.value.toLowerCase();
+        // Search filter
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', () => {
+            const filter = searchInput.value.toLowerCase();
             const rows = document.querySelectorAll('tbody tr');
             rows.forEach(row => {
-                if (row.querySelector('td[colspan]')) {
-                    row.style.display = filter ? 'none' : '';
-                    return;
-                }
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(filter) ? '' : 'none';
+                if (row.querySelector('td[colspan]')) return;
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
             });
             setupPagination();
         });

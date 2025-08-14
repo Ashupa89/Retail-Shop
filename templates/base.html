@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RetailStockApp - Patidar Traders</title>
+  <title>{{ title or "RetailStockApp - Patidar Traders" }}</title>
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -21,42 +21,110 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 
   <style>
-    /* Improved visual spacing */
     body {
       background-color: #f8f9fa;
+      font-family: 'Segoe UI', sans-serif;
     }
+
+    /* Navbar */
     .navbar-brand h4 {
       font-size: 1.25rem;
       font-weight: 600;
     }
+
     .navbar-brand small {
       font-size: 0.85rem;
     }
+
     .navbar-nav .btn {
       border-radius: 50px;
       padding: 0.4rem 1rem;
       font-size: 0.9rem;
+      transition: transform 0.2s ease;
     }
+
+    .navbar-nav .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Main container */
     main {
       min-height: calc(100vh - 150px);
     }
+
+    /* Footer */
     footer {
       background-color: #0d6efd;
       color: white;
-      padding: 10px 0;
+      padding: 12px 0;
       text-align: center;
+      font-weight: 500;
+      font-size: 0.9rem;
     }
+
+    /* Flash messages */
     .alert {
       border-radius: 10px;
+      font-size: 0.95rem;
+    }
+
+    /* Cards & tables */
+    .card {
+      border-radius: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    table tbody tr:hover {
+      background-color: rgba(13, 110, 253, 0.05);
+    }
+
+    /* Dashboard cards */
+    .dashboard-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .dashboard-cards .card {
+      flex: 1 1 200px;
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .dashboard-cards h3 {
+      margin-bottom: 0.5rem;
+    }
+
+    .low-stock-alert {
+      color: #dc3545;
+      font-weight: 500;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .navbar-nav .btn {
+        font-size: 0.85rem;
+        padding: 0.35rem 0.8rem;
+      }
+      .dashboard-cards {
+        flex-direction: column;
+      }
     }
   </style>
+  {% block head %}{% endblock %}
 </head>
 
 <body>
 
 <!-- Navbar / Header -->
 <header>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
     <div class="container">
 
       <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
@@ -66,15 +134,16 @@
           <h4 class="mb-0">{{ shop.shop_name if shop else 'Retail Shop Traders' }}</h4>
           <small class="text-light">
             {% if shop %}
-            {{ shop.address if shop else 'Management' }} |
-            <i class="bi bi-telephone"></i> {{ shop.phone if shop else '' }} |
-            <i class="bi bi-upc-scan"></i> {{ shop.gstin if shop else '' }}
+            {{ shop.address }} |
+            <i class="bi bi-telephone"></i> {{ shop.phone }} |
+            <i class="bi bi-upc-scan"></i> {{ shop.gstin }}
             {% endif %}
           </small>
         </div>
       </a>
 
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navbarSupportedContent"
               aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -84,6 +153,11 @@
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-2">
           <li class="nav-item">
             <a class="btn btn-light btn-sm" href="{{ url_for('index') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-light btn-sm" href="{{ url_for('payments') }}">
+              <i class="bi bi-credit-card"></i> Payments
+            </a>
           </li>
           <li class="nav-item">
             <a class="btn btn-light btn-sm" href="{{ url_for('products') }}"><i class="bi bi-box-seam"></i> Products</a>
@@ -131,5 +205,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+{% block scripts %}{% endblock %}
 </body>
 </html>

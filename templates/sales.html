@@ -1,556 +1,352 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row g-4">
+<style>
+    body {
+        font-size: 0.9rem;
+        background-color: #f4f6f9;
+    }
+
+    /* Card Styling */
+    .card {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        background: #fff;
+    }
+
+    /* Card Header */
+    .card-header {
+        font-size: 1rem;
+        letter-spacing: 0.5px;
+        padding: 0.5rem 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    /* Product Cards */
+    .product-card {
+        border-radius: 10px;
+        transition: all 0.25s ease-in-out;
+        background: white;
+        cursor: pointer;
+        border: 1px solid #eee;
+        position: relative;
+        overflow: hidden;
+        font-size: 0.85rem;
+    }
+    .product-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    .product-card img {
+        border-radius: 10px 10px 0 0;
+        height: 100px;
+        object-fit: cover;
+        width: 100%;
+    }
+    .product-price {
+        font-size: 0.9rem;
+        color: #28a745;
+        font-weight: bold;
+    }
+    .stock-badge {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        font-size: 0.7rem;
+        border-radius: 6px;
+        padding: 2px 5px;
+        color: white;
+    }
+    .stock-low { background-color: #dc3545; }
+    .stock-ok { background-color: #6c757d; }
+    .out-of-stock { background-color: #6c757d; }
+
+    /* Disabled Products */
+    .disabled-product {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+    .disabled-product:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Compact Cart Items */
+    .cart-item {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        transition: all 0.2s;
+        font-size: 0.85rem;
+    }
+    .cart-item:hover { background: #f8f9fa; }
+    .cart-item .subtotal { color: #28a745; font-weight: bold; font-size:0.85rem; }
+    .cart-item .remove-item {
+        transition: transform 0.2s;
+    }
+    .cart-item .remove-item:hover { transform: scale(1.2); }
+
+    /* Cart Header/Footer Sticky */
+    .cart-footer {
+        background: white;
+        border-top: 1px solid #ddd;
+        padding: 0.5rem;
+        box-shadow: 0 -3px 8px rgba(0,0,0,0.04);
+        position: sticky;
+        bottom: 0;
+    }
+    .btn-primary {
+        border-radius: 50px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+    }
+    input:focus, select:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    }
+
+    /* Animations */
+    @keyframes slideOut {
+        0% { opacity: 1; transform: translateX(0); height: auto; margin-bottom: 0.25rem; }
+        100% { opacity: 0; transform: translateX(100%); height: 0; margin-bottom: 0; }
+    }
+    .slide-out { animation: slideOut 0.3s forwards; }
+
+    /* Tooltip styling */
+    .product-tooltip {
+        white-space: pre-line;
+        font-size: 0.8rem;
+    }
+</style>
+
+<div class="row g-3">
     <!-- Product List -->
     <div class="col-lg-6">
         <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-primary text-white fw-bold">Available Products</div>
-            <div class="card-body p-0">
-                <table class="table table-hover align-left mb-0" id="productsTable">
-                    <thead class="table-light">
-                    <tr>
-                        <th>Name</th>
-                        <th>Cost Price</th>
-                        <th>Qty</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for p in products %}
-                    <tr data-product-id="{{ p.id }}">
-                        <td>{{ p.name }}</td>
-                        <td>₹{{ '%.2f'|format(p.cost_price) }}</td>
-                        <td class="stock-cell">{{ p.quantity }}</td>
-                    </tr>
+            <div class="card-header bg-primary text-white fw-bold">
+                <input type="text" id="productSearch" class="form-control form-control-sm rounded" placeholder="Search products...">
+                <select id="categoryFilter" class="form-select form-select-sm rounded ms-2">
+                    <option value="">All Categories</option>
+                    {% for c in categories %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
                     {% endfor %}
-                    </tbody>
-                </table>
+                </select>
+            </div>
+            <div class="card-body p-2">
+                <div class="row row-cols-2 row-cols-md-3 g-2" id="productGrid">
+                    {% for p in products %}
+                    <div class="col">
+                        <div class="product-card p-2 text-center shadow-sm h-100
+                            {% if p.quantity == 0 %} disabled-product {% endif %}"
+                             data-id="{{ p.id }}"
+                             data-name="{{ p.name }}"
+                             data-price="{{ '%.2f'|format(p.selling_price) }}"
+                             data-stock="{{ p.quantity }}"
+                             data-category="{{ p.category_id }}"
+                             data-bs-toggle="tooltip"
+                             title="Price: ₹{{ '%.2f'|format(p.selling_price) }}&#10;Stock: {{ p.quantity }}">
+
+                            {% if p.quantity == 0 %}
+                            <span class="stock-badge out-of-stock">Out of Stock</span>
+                            {% elif p.quantity < 5 %}
+                            <span class="stock-badge stock-low">Low Stock</span>
+                            {% else %}
+                            <span class="stock-badge stock-ok">Stock: {{ p.quantity }}</span>
+                            {% endif %}
+
+                            <img src="{{ p.image_url or url_for('static', filename='img.png') }}" alt="{{ p.name }}" style="height: 50px;width: 50px;">
+                            <h6 class="fw-bold mb-1 mt-1">{{ p.name }}</h6>
+                            <div class="product-price mb-1">₹{{ '%.2f'|format(p.selling_price) }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Create Sale -->
+    <!-- Compact Cart -->
     <div class="col-lg-6">
         <div class="card shadow-sm border-0 h-100 d-flex flex-column">
-            <div class="card-header bg-primary text-white fw-bold">Create Sale</div>
-
-            <!-- Scrollable form area -->
-            <div class="card-body overflow-auto" style="flex: 1 1 auto; max-height: 65vh;">
+            <div class="card-header bg-primary text-white fw-bold py-2 px-2">Create Sale</div>
+            <div class="card-body overflow-auto" style="flex: 1 1 auto; max-height: 60vh; padding:0.5rem;">
                 <form id="saleForm" class="d-flex flex-column h-100" novalidate>
-                    <!-- Customer -->
-                    <div class="mb-3">
-                        <label for="customer" class="form-label fw-semibold">Customer Name</label>
-                        <input type="text" class="form-control" id="customer" placeholder="Enter customer name"  value="Ashish" required>
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="customer" placeholder="Customer name" value="Ashish" required>
                         <div class="invalid-feedback">Customer name cannot be empty.</div>
                     </div>
-
-                    <!-- Inline validation message container -->
-                    <div id="formError" class="text-danger mb-3" role="alert" style="display:none;"></div>
-
-                    <!-- Items container -->
-                    <div id="items"></div>
-
-                    <!-- Add item -->
-                    <div class="d-flex justify-content-end mb-3">
-                        <button id="addItem" class="btn btn-outline-secondary btn-sm" type="button">
-                            <i class="bi bi-plus-circle me-1"></i> Add Item
-                        </button>
-                    </div>
+                    <div id="formError" class="text-danger mb-2" style="display:none; font-size:0.8rem;"></div>
+                    <div id="cartItems" class="vstack gap-1 text-muted" style="font-size:0.85rem;"></div>
                 </form>
             </div>
 
-            <!-- Sticky footer -->
-            <div class="p-3 border-top bg-light">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="fw-bold mb-0">Total:</h5>
-                    <h5 class="fw-bold text-success mb-0 fs-4">₹<span id="totalAmount">0.00</span></h5>
+            <div class="cart-footer">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h6 class="fw-bold mb-0">Total:</h6>
+                    <h6 class="fw-bold text-success mb-0">₹<span id="totalAmount">0.00</span></h6>
                 </div>
                 <div class="d-grid">
-                    <button type="submit" form="saleForm" class="btn btn-primary btn-lg" id="submitBtn">
+                    <button type="submit" form="saleForm" class="btn btn-primary btn-sm">
                         <i class="bi bi-receipt-cutoff me-1"></i> Create Invoice
                     </button>
                 </div>
-                <div id="invoiceLink" class="mt-3 text-center"></div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Hidden template for sale item row -->
-<template id="saleItemTemplate">
-    <div class="input-group mb-2 sale-item align-items-center">
-        <select class="form-select product-select" required>
-            <option value="" disabled selected>Select product</option>
-            {% for p in products %}
-            <option {% if p.quantity == 0 %} disabled {% endif %} value="{{ p.id }}" data-price="{{ '%.2f'|format(p.cost_price) }}">
-                {{ p.name }} — ₹{{ '%.2f'|format(p.cost_price) }} (Stock: {{ p.quantity }})
-            </option>
-            {% endfor %}
-        </select>
-        <input type="number" class="form-control item-qty" min="1" value="1" style="max-width:80px;">
-        <span class="input-group-text item-subtotal">₹0.00</span>
-        <button type="button" class="btn btn-outline-danger remove-item" title="Remove">
+<!-- Compact Cart Item Template -->
+<template id="cartItemTemplate">
+    <div class="cart-item d-flex align-items-center justify-content-between border p-1 rounded" data-id="">
+        <div class="flex-grow-1">
+            <div class="fw-semibold product-name"></div>
+            <small class="text-muted stock-info"></small>
+        </div>
+        <div class="input-group input-group-sm mx-1" style="width:90px;">
+            <button class="btn btn-outline-secondary qty-minus" type="button">-</button>
+            <input type="number" class="form-control text-center qty-input" min="1" value="1" style="height:28px; font-size:0.8rem;">
+            <button class="btn btn-outline-secondary qty-plus" type="button">+</button>
+        </div>
+        <div class="subtotal fw-bold mx-1">₹0.00</div>
+        <button type="button" class="btn btn-outline-danger btn-sm remove-item p-1" style="font-size:0.8rem;">
             <i class="bi bi-trash"></i>
         </button>
     </div>
-    <div class="form-text text-danger small ms-1 qty-error" style="display:none;">Quantity exceeds available stock.</div>
 </template>
 
-<!--<script>-->
-<!--    document.addEventListener('DOMContentLoaded', () => {-->
-<!--        // Build products map (id -> {name, price, stock})-->
-<!--        const products = {-->
-<!--        {% for p in products %}-->
-<!--        "{{ p.id }}": { id: "{{ p.id }}", name: "{{ p.name|e }}", price: {{ '%.2f'|format(p.cost_price) }}, stock: {{ p.quantity|int }} },-->
-<!--        {% endfor %}-->
-<!--    };-->
-
-<!--        const itemsContainer = document.getElementById('items');-->
-<!--        const template = document.getElementById('saleItemTemplate');-->
-<!--        const totalAmountEl = document.getElementById('totalAmount');-->
-<!--        const formError = document.getElementById('formError');-->
-<!--        const submitBtn = document.getElementById('submitBtn');-->
-
-<!--        // Helpers to update UI state-->
-<!--        function getAllocations() {-->
-<!--            // returns { productId: totalQtyAllocatedInForm }-->
-<!--            const alloc = {};-->
-<!--            itemsContainer.querySelectorAll('.sale-item').forEach(row => {-->
-<!--                const pid = row.querySelector('.product-select').value;-->
-<!--                const qty = parseInt(row.querySelector('.item-qty').value) || 0;-->
-<!--                if (pid) alloc[pid] = (alloc[pid] || 0) + qty;-->
-<!--            });-->
-<!--            return alloc;-->
-<!--        }-->
-
-<!--        function updateStockTable() {-->
-<!--            const alloc = getAllocations();-->
-<!--            document.querySelectorAll('#productsTable tbody tr').forEach(tr => {-->
-<!--                const pid = tr.getAttribute('data-product-id');-->
-<!--                const base = products[pid]?.stock || 0;-->
-<!--                const remaining = Math.max(0, base - (alloc[pid] || 0));-->
-<!--                const cell = tr.querySelector('.stock-cell');-->
-<!--                cell.textContent = remaining;-->
-<!--                // Optional visual cue when low stock-->
-<!--                if (remaining === 0) {-->
-<!--                    cell.classList.add('text-danger', 'fw-bold');-->
-<!--                } else {-->
-<!--                    cell.classList.remove('text-danger', 'fw-bold');-->
-<!--                }-->
-<!--            });-->
-<!--        }-->
-
-<!--        function updateDropdownOptions() {-->
-<!--            const chosen = Array.from(itemsContainer.querySelectorAll('.product-select'))-->
-<!--                .map(s => s.value).filter(Boolean);-->
-
-<!--            itemsContainer.querySelectorAll('.product-select').forEach(select => {-->
-<!--                const current = select.value;-->
-<!--                Array.from(select.options).forEach(opt => {-->
-<!--                    if (!opt.value) return;-->
-<!--                    opt.hidden = chosen.includes(opt.value) && opt.value !== current;-->
-<!--                });-->
-<!--            });-->
-<!--        }-->
-
-<!--        function updateTotalsAndValidate() {-->
-<!--            let grand = 0;-->
-<!--            let hasError = false;-->
-
-<!--            const allocTotal = getAllocations();-->
-
-<!--            itemsContainer.querySelectorAll('.sale-item').forEach(row => {-->
-<!--                const select = row.querySelector('.product-select');-->
-<!--                const qtyInput = row.querySelector('.item-qty');-->
-<!--                const err = row.nextElementSibling?.classList.contains('qty-error') ? row.nextElementSibling : null;-->
-
-<!--                const pid = select.value;-->
-<!--                const price = parseFloat(select.selectedOptions[0]?.dataset.price || 0);-->
-<!--                const qty = parseInt(qtyInput.value) || 0;-->
-<!--                const subtotal = price * qty;-->
-<!--                row.querySelector('.item-subtotal').textContent = `₹${subtotal.toFixed(2)}`;-->
-<!--                grand += subtotal;-->
-
-<!--                // For this row, compute remaining stock considering ALL rows,-->
-<!--                // then "give back" this row's own qty so max allows current value.-->
-<!--                const base = products[pid]?.stock || 0;-->
-<!--                const allocatedOthers = (allocTotal[pid] || 0) - qty;-->
-<!--                const remainingForThisRow = Math.max(0, base - allocatedOthers);-->
-
-<!--                // Enforce dynamic max and show errors-->
-<!--                if (pid) {-->
-<!--                    qtyInput.max = String(remainingForThisRow);-->
-<!--                    if (qty > remainingForThisRow) {-->
-<!--                        qtyInput.classList.add('is-invalid');-->
-<!--                        if (err) err.style.display = 'block';-->
-<!--                        hasError = true;-->
-<!--                    } else {-->
-<!--                        qtyInput.classList.remove('is-invalid');-->
-<!--                        if (err) err.style.display = 'none';-->
-<!--                    }-->
-<!--                } else {-->
-<!--                    qtyInput.classList.remove('is-invalid');-->
-<!--                    if (err) err.style.display = 'none';-->
-<!--                }-->
-<!--            });-->
-
-<!--            totalAmountEl.textContent = grand.toFixed(2);-->
-<!--            submitBtn.disabled = hasError;-->
-<!--            formError.style.display = hasError ? 'block' : 'none';-->
-<!--            if (hasError) formError.textContent = 'Please fix quantity errors before submitting.';-->
-<!--        }-->
-
-<!--        function refreshAll() {-->
-<!--            updateDropdownOptions();-->
-<!--            updateTotalsAndValidate();-->
-<!--            updateStockTable();-->
-<!--        }-->
-
-<!--        function addSaleItem() {-->
-<!--            // Prevent adding if all products are already used-->
-<!--            const allIds = Object.keys(products);-->
-<!--            const used = Array.from(itemsContainer.querySelectorAll('.product-select'))-->
-<!--                .map(s => s.value).filter(Boolean);-->
-<!--            if (used.length >= allIds.length) {-->
-<!--                formError.textContent = 'All products are already selected.';-->
-<!--                formError.style.display = 'block';-->
-<!--                return;-->
-<!--            }-->
-
-<!--            const frag = template.content.cloneNode(true);-->
-<!--            const row = frag.querySelector('.sale-item');-->
-<!--            const select = row.querySelector('.product-select');-->
-<!--            const qtyInput = row.querySelector('.item-qty');-->
-
-<!--            // Wire events-->
-<!--            row.querySelector('.remove-item').addEventListener('click', () => {-->
-<!--                const rows = itemsContainer.querySelectorAll('.sale-item');-->
-<!--                if (rows.length <= 1) {-->
-<!--                    alert('At least one item is required.');-->
-<!--                    return;-->
-<!--                }-->
-<!--                row.nextElementSibling?.classList.contains('qty-error') && row.nextElementSibling.remove();-->
-<!--                row.remove();-->
-<!--                refreshAll();-->
-<!--            });-->
-
-<!--            select.addEventListener('change', () => {-->
-<!--                // When changing product, reset qty to 1 for safety against stock-->
-<!--                qtyInput.value = '1';-->
-<!--                refreshAll();-->
-<!--            });-->
-
-<!--            qtyInput.addEventListener('input', () => {-->
-<!--                // Normalize invalid values-->
-<!--                const min = parseInt(qtyInput.min) || 1;-->
-<!--                if (!qtyInput.value || parseInt(qtyInput.value) < min) qtyInput.value = String(min);-->
-<!--                refreshAll();-->
-<!--            });-->
-
-<!--            // Append to DOM-->
-<!--            itemsContainer.appendChild(frag);-->
-
-<!--            // Auto-select first available option for this new row-->
-<!--            const newRow = itemsContainer.lastElementChild; // sale-item-->
-<!--            const newSelect = newRow.querySelector('.product-select');-->
-<!--            const firstAvail = Array.from(newSelect.options).find(o => o.value && !o.hidden);-->
-<!--            if (firstAvail) newSelect.value = firstAvail.value;-->
-
-<!--            refreshAll();-->
-<!--        }-->
-
-<!--        // Buttons & submit-->
-<!--        document.getElementById('addItem').addEventListener('click', addSaleItem);-->
-
-<!--        document.getElementById('saleForm').addEventListener('submit', async (e) => {-->
-<!--            e.preventDefault();-->
-<!--            formError.style.display = 'none';-->
-
-<!--            const customer = document.getElementById('customer').value.trim();-->
-<!--            if (!customer) {-->
-<!--                formError.textContent = 'Customer name cannot be empty.';-->
-<!--                formError.style.display = 'block';-->
-<!--                return;-->
-<!--            }-->
-
-<!--            // Final validation: ensure no qty error and products chosen-->
-<!--            const rows = itemsContainer.querySelectorAll('.sale-item');-->
-<!--            if (rows.length === 0) {-->
-<!--                formError.textContent = 'Please add at least one product.';-->
-<!--                formError.style.display = 'block';-->
-<!--                return;-->
-<!--            }-->
-
-<!--            // Build payload-->
-<!--            const items = [];-->
-<!--            const alloc = getAllocations();-->
-<!--            for (const row of rows) {-->
-<!--                const pid = row.querySelector('.product-select').value;-->
-<!--                const qty = parseInt(row.querySelector('.item-qty').value) || 0;-->
-<!--                if (!pid || qty < 1) {-->
-<!--                    formError.textContent = 'Please select products and valid quantities.';-->
-<!--                    formError.style.display = 'block';-->
-<!--                    return;-->
-<!--                }-->
-<!--                // Check against stock-->
-<!--                if (alloc[pid] > (products[pid]?.stock || 0)) {-->
-<!--                    formError.textContent = 'One or more items exceed available stock.';-->
-<!--                    formError.style.display = 'block';-->
-<!--                    return;-->
-<!--                }-->
-<!--                items.push({ product_id: pid, quantity: qty });-->
-<!--            }-->
-
-<!--            // Submit-->
-<!--            try {-->
-<!--                submitBtn.disabled = true;-->
-<!--                const res = await fetch('/create-sale', {-->
-<!--                    method: 'POST',-->
-<!--                    headers: { 'Content-Type': 'application/json' },-->
-<!--                    body: JSON.stringify({ customer_name: customer, items })-->
-<!--                });-->
-<!--                const data = await res.json();-->
-
-<!--                if (res.ok && data.invoice_no) {-->
-<!--                    // Show link and (optionally) auto-open-->
-<!--                    const url = data.invoice_url || `/invoice/${data.invoice_no}`;-->
-<!--                    document.getElementById('invoiceLink').innerHTML =-->
-<!--                        `<a href="${url}" target="_blank" class="btn btn-success">View Invoice #${data.invoice_no}</a>`;-->
-<!--                    window.open(url, '_blank'); // auto-open new tab-->
-<!--                    // Reset form UI-->
-<!--                    itemsContainer.innerHTML = '';-->
-<!--                    addSaleItem();-->
-<!--                } else {-->
-<!--                    formError.textContent = data.error || 'Error creating sale.';-->
-<!--                    formError.style.display = 'block';-->
-<!--                }-->
-<!--            } catch (err) {-->
-<!--                formError.textContent = 'Network error. Please try again.';-->
-<!--                formError.style.display = 'block';-->
-<!--            } finally {-->
-<!--                submitBtn.disabled = false;-->
-<!--                refreshAll();-->
-<!--            }-->
-<!--        });-->
-
-<!--        // Start with one row-->
-<!--        addSaleItem();-->
-<!--    });-->
-<!--</script>-->
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const products = {
-        {% for p in products %}
-        "{{ p.id }}": { id: "{{ p.id }}", name: "{{ p.name|e }}", price: {{ '%.2f'|format(p.cost_price) }}, stock: {{ p.quantity|int }} },
-        {% endfor %}
-    };
+    document.addEventListener("DOMContentLoaded", () => {
+        const searchInput = document.getElementById("productSearch");
+        const categoryFilter = document.getElementById("categoryFilter");
+        const productGrid = document.getElementById("productGrid");
+        const cartItems = document.getElementById("cartItems");
+        const totalAmountEl = document.getElementById("totalAmount");
+        const cartItemTemplate = document.getElementById("cartItemTemplate").content;
+        const formError = document.getElementById("formError");
+        const saleForm = document.getElementById("saleForm");
+        let cart = {};
 
-        const itemsContainer = document.getElementById('items');
-        const template = document.getElementById('saleItemTemplate');
-        const totalAmountEl = document.getElementById('totalAmount');
-        const formError = document.getElementById('formError');
-        const submitBtn = document.getElementById('submitBtn');
+        // Enable Bootstrap tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('.product-card'));
+        tooltipTriggerList.map(el => new bootstrap.Tooltip(el, { customClass: 'product-tooltip' }));
 
-        function getAllocations() {
-            const alloc = {};
-            itemsContainer.querySelectorAll('.sale-item').forEach(row => {
-                const pid = row.querySelector('.product-select').value;
-                const qty = parseInt(row.querySelector('.item-qty').value) || 0;
-                if (pid) alloc[pid] = (alloc[pid] || 0) + qty;
-            });
-            return alloc;
-        }
-
-        function updateStockTable() {
-            const alloc = getAllocations();
-            document.querySelectorAll('#productsTable tbody tr').forEach(tr => {
-                const pid = tr.getAttribute('data-product-id');
-                const base = products[pid]?.stock || 0;
-                const remaining = Math.max(0, base - (alloc[pid] || 0));
-                const cell = tr.querySelector('.stock-cell');
-                cell.textContent = remaining;
-                if (remaining === 0) cell.classList.add('text-danger', 'fw-bold');
-                else cell.classList.remove('text-danger', 'fw-bold');
+        function filterProducts() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const category = categoryFilter.value;
+            Array.from(productGrid.children).forEach(col => {
+                const card = col.querySelector(".product-card");
+                const name = card.dataset.name.toLowerCase();
+                const matchesSearch = name.includes(searchTerm);
+                const matchesCategory = !category || card.dataset.category === category;
+                col.style.display = (matchesSearch && matchesCategory) ? "" : "none";
             });
         }
+        searchInput.addEventListener("input", filterProducts);
+        categoryFilter.addEventListener("change", filterProducts);
 
-        function updateDropdownOptions() {
-            const chosen = Array.from(itemsContainer.querySelectorAll('.product-select'))
-                .map(s => s.value).filter(Boolean);
+        function updateTotal() {
+            const total = Object.values(cart).reduce((sum, item) => sum + (item.price * item.qty), 0);
+            totalAmountEl.textContent = total.toFixed(2);
+        }
 
-            itemsContainer.querySelectorAll('.product-select').forEach(select => {
-                const current = select.value;
-                Array.from(select.options).forEach(opt => {
-                    if (!opt.value) return; // skip placeholder
-                    opt.disabled = chosen.includes(opt.value) && opt.value !== current;
+        function renderCartItem(item) {
+            const node = document.importNode(cartItemTemplate, true);
+            const cartRow = node.querySelector(".cart-item");
+            cartRow.dataset.id = item.id;
+            node.querySelector(".product-name").textContent = item.name;
+            node.querySelector(".stock-info").textContent = `Stock: ${item.stock}`;
+            node.querySelector(".qty-input").value = item.qty;
+            node.querySelector(".subtotal").textContent = `₹${(item.price*item.qty).toFixed(2)}`;
+            if(cartItems.textContent === "Cart is empty") cartItems.textContent = "";
+            cartItems.appendChild(node);
+        }
+
+        function updateCartItem(item) {
+            const cartRow = cartItems.querySelector(`.cart-item[data-id="${item.id}"]`);
+            if (!cartRow) return;
+            cartRow.querySelector(".qty-input").value = item.qty;
+            cartRow.querySelector(".subtotal").textContent = `₹${(item.price*item.qty).toFixed(2)}`;
+        }
+
+        productGrid.addEventListener("click", (e) => {
+            const card = e.target.closest(".product-card");
+            if (!card || card.classList.contains("disabled-product")) return;
+            const id = card.dataset.id;
+            const name = card.dataset.name;
+            const price = parseFloat(card.dataset.price);
+            const stock = parseInt(card.dataset.stock);
+            if (!cart[id]) { cart[id] = { id, name, price, qty: 1, stock }; renderCartItem(cart[id]); }
+            else {
+                if (cart[id].qty < stock) cart[id].qty++;
+                else return alert("No more stock available for " + name);
+                updateCartItem(cart[id]);
+            }
+            updateTotal();
+        });
+
+        cartItems.addEventListener("click", (e) => {
+            const cartRow = e.target.closest(".cart-item");
+            if (!cartRow) return;
+            const id = cartRow.dataset.id;
+            const item = cart[id];
+            if (!item) return;
+
+            if (e.target.closest(".qty-plus")) { if (item.qty < item.stock) { item.qty++; updateCartItem(item); updateTotal(); } }
+            if (e.target.closest(".qty-minus")) { if (item.qty > 1) { item.qty--; updateCartItem(item); updateTotal(); } }
+            if (e.target.closest(".remove-item")) {
+                delete cart[id];
+                cartRow.classList.add('slide-out');
+                cartRow.addEventListener('animationend', () => {
+                    cartRow.remove();
+                    updateTotal();
+                    if (Object.keys(cart).length === 0) cartItems.textContent = "Cart is empty";
                 });
-            });
-        }
-
-        function updateTotalsAndValidate() {
-            let grand = 0, hasError = false;
-            const allocTotal = getAllocations();
-
-            itemsContainer.querySelectorAll('.sale-item').forEach(row => {
-                const select = row.querySelector('.product-select');
-                const qtyInput = row.querySelector('.item-qty');
-                const err = row.nextElementSibling?.classList.contains('qty-error') ? row.nextElementSibling : null;
-
-                const pid = select.value;
-                const price = parseFloat(select.selectedOptions[0]?.dataset.price || 0);
-                const qty = parseInt(qtyInput.value) || 0;
-                const subtotal = price * qty;
-                row.querySelector('.item-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
-                grand += subtotal;
-
-                if (pid) {
-                    const base = products[pid]?.stock || 0;
-                    const allocatedOthers = (allocTotal[pid] || 0) - qty;
-                    const remainingForThisRow = Math.max(0, base - allocatedOthers);
-
-                    qtyInput.max = remainingForThisRow;
-                    if (qty > remainingForThisRow) {
-                        qtyInput.classList.add('is-invalid');
-                        if (err) err.style.display = 'block';
-                        hasError = true;
-                    } else {
-                        qtyInput.classList.remove('is-invalid');
-                        if (err) err.style.display = 'none';
-                    }
-                } else {
-                    qtyInput.classList.remove('is-invalid');
-                    if (err) err.style.display = 'none';
-                }
-            });
-
-            totalAmountEl.textContent = grand.toFixed(2);
-            submitBtn.disabled = hasError;
-            formError.style.display = hasError ? 'block' : 'none';
-            if (hasError) formError.textContent = 'Please fix quantity errors before submitting.';
-        }
-
-        function refreshAll() {
-            updateDropdownOptions();
-            updateTotalsAndValidate();
-            updateStockTable();
-        }
-
-        function addSaleItem() {
-            const allIds = Object.keys(products);
-            const used = Array.from(itemsContainer.querySelectorAll('.product-select'))
-                .map(s => s.value).filter(Boolean);
-            if (used.length >= allIds.length) {
-                formError.textContent = 'All products are already selected.';
-                formError.style.display = 'block';
-                return;
-            }
-
-            const frag = template.content.cloneNode(true);
-            const row = frag.querySelector('.sale-item');
-            const select = row.querySelector('.product-select');
-            const qtyInput = row.querySelector('.item-qty');
-
-            row.querySelector('.remove-item').addEventListener('click', () => {
-                const rows = itemsContainer.querySelectorAll('.sale-item');
-                if (rows.length <= 1) {
-                    alert('At least one item is required.');
-                    return;
-                }
-                row.nextElementSibling?.classList.contains('qty-error') && row.nextElementSibling.remove();
-                row.remove();
-                refreshAll();
-            });
-
-            select.addEventListener('change', () => {
-                qtyInput.value = '1';
-                refreshAll();
-            });
-
-            qtyInput.addEventListener('input', () => {
-                const min = parseInt(qtyInput.min) || 1;
-                if (!qtyInput.value || parseInt(qtyInput.value) < min) qtyInput.value = String(min);
-                refreshAll();
-            });
-
-            itemsContainer.appendChild(frag);
-
-            // Auto-select first available option
-            const newRow = itemsContainer.lastElementChild;
-            const newSelect = newRow.querySelector('.product-select');
-            const firstAvail = Array.from(newSelect.options).find(o => o.value && !o.disabled);
-            if (firstAvail) newSelect.value = firstAvail.value;
-
-            refreshAll();
-        }
-
-        document.getElementById('addItem').addEventListener('click', addSaleItem);
-
-        document.getElementById('saleForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            formError.style.display = 'none';
-
-            const customer = document.getElementById('customer').value.trim();
-            if (!customer) {
-                formError.textContent = 'Customer name cannot be empty.';
-                formError.style.display = 'block';
-                return;
-            }
-
-            const rows = itemsContainer.querySelectorAll('.sale-item');
-            if (rows.length === 0) {
-                formError.textContent = 'Please add at least one product.';
-                formError.style.display = 'block';
-                return;
-            }
-
-            const items = [];
-            const alloc = getAllocations();
-            for (const row of rows) {
-                const pid = row.querySelector('.product-select').value;
-                const qty = parseInt(row.querySelector('.item-qty').value) || 0;
-                if (!pid || qty < 1) {
-                    formError.textContent = 'Please select products and valid quantities.';
-                    formError.style.display = 'block';
-                    return;
-                }
-                if (alloc[pid] > (products[pid]?.stock || 0)) {
-                    formError.textContent = 'One or more items exceed available stock.';
-                    formError.style.display = 'block';
-                    return;
-                }
-                items.push({ product_id: pid, quantity: qty });
-            }
-
-            try {
-                submitBtn.disabled = true;
-                const res = await fetch('/create-sale', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customer_name: customer, items })
-                });
-                const data = await res.json();
-
-                if (res.ok && data.invoice_no) {
-                    const url = data.invoice_url || `/invoice/${data.invoice_no}`;
-                    document.getElementById('invoiceLink').innerHTML =
-                        `<a href="${url}" target="_blank" class="btn btn-success">View Invoice #${data.invoice_no}</a>`;
-                    window.open(url, '_blank');
-                    itemsContainer.innerHTML = '';
-                    addSaleItem();
-                } else {
-                    formError.textContent = data.error || 'Error creating sale.';
-                    formError.style.display = 'block';
-                }
-            } catch (err) {
-                formError.textContent = 'Network error. Please try again.';
-                formError.style.display = 'block';
-            } finally {
-                submitBtn.disabled = false;
-                refreshAll();
             }
         });
 
-        addSaleItem(); // initial row
+        cartItems.addEventListener("input", (e) => {
+            if (!e.target.classList.contains("qty-input")) return;
+            const cartRow = e.target.closest(".cart-item");
+            const id = cartRow.dataset.id;
+            const item = cart[id];
+            if (!item) return;
+            let newQty = parseInt(e.target.value) || 1;
+            if (newQty > item.stock) { newQty = item.stock; alert("Max stock reached"); }
+            item.qty = newQty;
+            updateCartItem(item);
+            updateTotal();
+        });
+
+        saleForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const customerName = document.getElementById("customer").value.trim();
+            if (!customerName) { formError.textContent = "Customer name cannot be empty."; formError.style.display = "block"; return; }
+            if (Object.keys(cart).length === 0) { formError.textContent = "Cart is empty."; formError.style.display = "block"; return; }
+            formError.style.display = "none";
+
+            const payload = { customer_name: customerName, items: Object.values(cart).map(item => ({ product_id: item.id, quantity: item.qty, price: item.price })) };
+
+            try {
+                const res = await fetch("/create-sale", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok && data.invoice_no) {
+                    const url = data.invoice_url || `/invoice/${data.invoice_no}`;
+                    window.open(url, '_blank');
+                    // alert(`Invoice #${data.invoice_no} created successfully!`);
+                    cart = {}; cartItems.textContent = "Cart is empty"; updateTotal();
+                } else {
+                    formError.textContent = data.error || "Error creating sale.";
+                    formError.style.display = "block";
+                }
+            } catch(err) { console.error(err); alert("Error creating invoice."); }
+        });
     });
 </script>
-
 {% endblock %}
