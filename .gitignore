@@ -1,4 +1,4 @@
 # Composer dependencies
 /venv
-/instance/database.db
+/instance/
 /invoices
