@@ -63,11 +63,13 @@
         <img src="{{ url_for('static', filename=shop.logo_filename if shop and shop.logo_filename else 'logo.png') }}"
              alt="Logo" height="50" class="me-3 rounded bg-white p-1 border" style="max-height:50px;" />
         <div>
-          <h4 class="mb-0">{{ shop.shop_name if shop else 'Patidar Traders' }}</h4>
+          <h4 class="mb-0">{{ shop.shop_name if shop else 'Retail Shop Traders' }}</h4>
           <small class="text-light">
-            {{ shop.address if shop else 'Mugaliya' }} |
-            <i class="bi bi-telephone"></i> {{ shop.phone if shop else '1234567890' }} |
-            <i class="bi bi-upc-scan"></i> {{ shop.gstin if shop else 'GSTN000001' }}
+            {% if shop %}
+            {{ shop.address if shop else 'Management' }} |
+            <i class="bi bi-telephone"></i> {{ shop.phone if shop else '' }} |
+            <i class="bi bi-upc-scan"></i> {{ shop.gstin if shop else '' }}
+            {% endif %}
           </small>
         </div>
       </a>
@@ -122,7 +124,7 @@
 
 <!-- Footer -->
 <footer>
-  &copy; {{ shop.shop_name if shop else 'Patidar Traders' }} - All Rights Reserved
+  &copy; {{ shop.shop_name if shop else 'Retail Shop Traders' }} - All Rights Reserved
 </footer>
 
 <!-- Bootstrap JS Bundle -->
