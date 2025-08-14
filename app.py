@@ -1,5 +1,11 @@
-from flask import Flask, render_template, redirect, url_for, request, flash , jsonify, send_file
+import os
+import io
+import csv
+import pandas as pd
+from datetime import datetime
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Product, Sale, SaleItem, ShopSetting, ShopInfo, Payment
@@ -10,19 +16,32 @@ from io import BytesIO, StringIO
 import os
 import pandas as pd
 from werkzeug.utils import secure_filename
-import io
-import csv
+from logging.handlers import RotatingFileHandler
+import logging
+from dotenv import load_dotenv
+
+# -------------------------
+# Load environment variables
+# -------------------------
+load_dotenv()
 
 # -------------------------
 # App & Config
 # -------------------------
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'supersecretkey'  # change this in production
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-dev-key')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'static')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Init DB with app
+# -------------------------
+# DB & Migrations
+# -------------------------
+from models import db, User, Product, Sale, SaleItem, ShopSetting, ShopInfo, Payment
 db.init_app(app)
+migrate = Migrate(app, db)
 
 # -------------------------
 # Login Manager
@@ -36,7 +55,67 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # -------------------------
-# Routes
+# Logging
+# -------------------------
+if not app.debug:
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+    file_handler = RotatingFileHandler('logs/app.log', maxBytes=102400, backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+    app.logger.info('App startup')
+
+# -------------------------
+# Helper Functions
+# -------------------------
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_next_invoice_no():
+    last = Sale.query.order_by(Sale.id.desc()).first()
+    next_no = 1 if not last else last.id + 1
+    return f"INV-{next_no:05d}"
+
+def save_invoice_pdf(sale, path):
+    from invoice import generate_invoice_pdf
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    generate_invoice_pdf(sale.id, path)
+
+# -------------------------
+# DB Initialization
+# -------------------------
+def init_db(reset=False):
+    db_path = app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
+    if reset and os.path.exists(db_path):
+        os.remove(db_path)
+        print("🗑️ Existing database deleted.")
+
+    with app.app_context():
+        db.create_all()
+        print("📦 Database tables created/verified.")
+
+        # Admin user
+        if not User.query.filter_by(username='admin').first():
+            admin = User(username='admin', password_hash=generate_password_hash('admin'), is_admin=True)
+            db.session.add(admin)
+            print("✅ Admin user created")
+
+        # Default shop info
+        if not ShopInfo.query.first():
+            shop_info = ShopInfo(shop_name="Patidar Traders", address="Mugaliya", phone="1234567890",
+                                 gstin="GSTN000001", logo_filename="logo.png")
+            db.session.add(shop_info)
+            print("✅ Default shop info added")
+
+        db.session.commit()
+        print("💾 Database initialization complete")
+
+# -------------------------
+# Routes (simplified example)
 # -------------------------
 @app.route('/')
 @login_required
@@ -45,9 +124,11 @@ def index():
     sales = Sale.query.order_by(Sale.created_at.desc()).limit(5).all()
     low_stock = [p for p in products if p.quantity <= p.low_stock_threshold]
     shop = ShopInfo.query.first()
-    return render_template('index.html',
-        products=products, sales=sales, low_stock=low_stock ,shop=shop
-    )
+    return render_template('index.html', products=products, sales=sales, low_stock=low_stock, shop=shop)
+
+# -------------------------
+# Add your other routes here
+# -------------------------
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -547,7 +628,5 @@ def add_payment(sale_id):
 # Main Entry
 # -------------------------
 if __name__ == '__main__':
-    # reset=True will rebuild DB completely
-    init_db(reset=False)
-#     app.run(debug=True)
-
+    init_db(reset=False)  # safe init
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
