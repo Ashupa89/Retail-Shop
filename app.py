@@ -372,10 +372,29 @@ def create_sale():
         return jsonify({'error': 'At least one item is required'}), 400
 
     try:
+        # Cleanup: delete sales older than the last 10
+        last_10_sales = Sale.query.order_by(Sale.id.desc()).limit(5).all()
+        if last_10_sales:
+            # Get the minimum id to keep
+            min_id_to_keep = last_10_sales[-1].id
+            # Delete older sales
+            old_sales = Sale.query.filter(Sale.id < min_id_to_keep).all()
+            for old_sale in old_sales:
+                # Delete invoice PDF
+                invoice_file = os.path.join('invoices', f"{old_sale.invoice_no}.pdf")
+                if os.path.exists(invoice_file):
+                    os.remove(invoice_file)
+                # Delete related sale items
+                SaleItem.query.filter_by(sale_id=old_sale.id).delete()
+                db.session.delete(old_sale)
+            db.session.commit()
+
+        # Generate next invoice number
         last = Sale.query.order_by(Sale.id.desc()).first()
         next_no = 1 if not last else last.id + 1
         inv_no = format_invoice_no(next_no)
 
+        # Create sale
         sale = Sale(invoice_no=inv_no, customer_name=customer_name, total=0)
         db.session.add(sale)
         db.session.flush()  # get sale.id
@@ -397,9 +416,7 @@ def create_sale():
                 db.session.rollback()
                 return jsonify({'error': f'Insufficient stock for product {product.name}'}), 400
 
-            # Use selling_price or cost_price as you prefer
             price = product.selling_price
-
             sale_item = SaleItem(sale_id=sale.id, product_id=product.id, qty=qty, price=price)
             product.quantity -= qty
             total += qty * price
